@@ -1,0 +1,135 @@
+version: 2.1
+
+orbs:
+  terraform: axel-springer-kugawana/terraform@1.2.0
+  aws-cli: circleci/aws-cli@2.1.0
+  python: circleci/python@2.1.1
+
+
+jobs:
+  aws_configure:
+    parameters:
+      profile:
+        type: string
+    executor:
+      name: aws-cli/default
+    steps:
+      - attach_workspace:
+          at: "~"
+      - checkout
+      - aws-cli/setup:
+          aws-access-key-id: AWS_ACCESS_KEY_ID
+          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
+          profile-name: << parameters.profile >>
+      - persist_to_workspace:
+          paths:
+            - "."
+          root: "~"
+    environment:
+      AWS_DEFAULT_REGION: eu-central-1
+
+  terraform_plan:
+    parameters:
+      plan_path:
+        type: string
+    executor:
+      name: terraform/default
+      tag: 1.2.0
+    steps:
+      - attach_workspace:
+          at: "~"
+      - run: apk add jq py-pip curl && ln -sf python3 /usr/bin/python
+      - run: pip install awscli
+      - run:
+          name: "Current branch"
+          command: echo ${CIRCLE_BRANCH}
+      - terraform/plan:
+          plan_file: plan.out
+          path: << parameters.plan_path >>
+      - persist_to_workspace:
+          paths:
+            - "."
+          root: "~"
+    environment:
+      TF_CLI_ARGS_plan: -lock-timeout=300s
+      AWS_DEFAULT_REGION: eu-central-1
+
+  terraform_apply:
+    parameters:
+      deploy_path:
+        type: string
+    executor:
+      name: terraform/default
+      tag: 1.2.0
+    steps:
+      - attach_workspace:
+          at: "~"
+      - run: apk add jq py-pip curl && ln -sf python3 /usr/bin/python
+      - terraform/apply:
+          plan_file: plan.out
+          path: << parameters.deploy_path >>
+    environment:
+      TF_CLI_ARGS_apply: -lock-timeout=300s -refresh=false
+      AWS_DEFAULT_REGION: eu-central-1
+
+workflows:
+  workflow:
+    jobs:
+      # dev
+      - aws_configure:
+          name: aws_configure_dev
+          profile: iwt-bigdata-dev
+          context: iwt_bigdata_dev
+          filters:
+            branches:
+              only:
+                - dev
+                - feature
+      - terraform_plan:
+          name: terraform_plan_dev
+          plan_path: ./deployment/1dev
+          requires:
+            - aws_configure_dev
+      - terraform_apply:
+          name: terraform_apply_dev
+          deploy_path: ./deployment/1dev
+          requires:
+            - terraform_plan_dev
+      # preview
+      - aws_configure:
+          name: aws_configure_preview
+          profile: iwt-bigdata-preview
+          context: iwt_bigdata_preview
+          filters:
+            branches:
+              only:
+                - preview
+      - terraform_plan:
+          name: terraform_plan_preview
+          plan_path: ./deployment/2preview
+          requires:
+            - aws_configure_preview
+      - terraform_apply:
+          name: terraform_apply_preview
+          deploy_path: ./deployment/2preview
+          requires:
+            - terraform_plan_preview
+      # live
+      - aws_configure:
+          name: aws_configure_live
+          profile: iwt-bigdata-live
+          context: iwt_bigdata_live
+          filters:
+            branches:
+              only:
+                - main
+      - terraform_plan:
+          name: terraform_plan_live
+          plan_path: ./deployment/3live
+          requires:
+            - aws_configure_live
+      - terraform_apply:
+          name: terraform_apply_live
+          deploy_path: ./deployment/3live
+          requires:
+            - terraform_plan_live

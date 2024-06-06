@@ -1,0 +1,459 @@
+geoid,landkreis,stadtkreis
+10801001,"Flensburg, Stadt",TRUE
+10801002,"Kiel, Stadt",TRUE
+10801003,"Lübeck, Hansestadt",TRUE
+10801004,"Neumünster, Stadt",TRUE
+10801051,Dithmarschen,FALSE
+10801053,Herzogtum Lauenburg,FALSE
+10801054,Nordfriesland,FALSE
+10801055,Ostholstein,FALSE
+10801056,Pinneberg,FALSE
+10801057,Plön,FALSE
+10801058,Rendsburg-Eckernförde,FALSE
+10801059,Schleswig-Flensburg,FALSE
+10801060,Segeberg,FALSE
+10801061,Steinburg,FALSE
+10801062,Stormarn,FALSE
+108020,"Hamburg, Stadt",FALSE
+10802001,Hamburg Altona,FALSE
+10802002,Hamburg Bergedorf,FALSE
+10802003,Hamburg Eimsbüttel,FALSE
+10802004,Hamburg Hamburg-Mitte,FALSE
+10802005,Hamburg Hamburg-Nord,FALSE
+10802006,Hamburg Harburg,FALSE
+10802007,Hamburg Wandsbek,FALSE
+10803101,"Braunschweig, Stadt",TRUE
+10803102,"Salzgitter, Stadt",TRUE
+10803103,"Wolfsburg, Stadt",TRUE
+10803151,Gifhorn,FALSE
+10803152,Göttingen,FALSE
+10803153,Goslar,FALSE
+10803154,Helmstedt,FALSE
+10803155,Northeim,FALSE
+10803156,Osterode am Harz,FALSE
+10803157,Peine,FALSE
+10803158,Wolfenbüttel,FALSE
+10803241,Region Hannover,FALSE
+10803251,Diepholz,FALSE
+10803252,Hameln-Pyrmont,FALSE
+10803254,Hildesheim,FALSE
+10803255,Holzminden,FALSE
+10803256,Nienburg (Weser),FALSE
+10803257,Schaumburg,FALSE
+10803351,Celle,FALSE
+10803352,Cuxhaven,FALSE
+10803353,Harburg,FALSE
+10803354,Lüchow-Dannenberg,FALSE
+10803355,Lüneburg,FALSE
+10803356,Osterholz,FALSE
+10803357,Rotenburg (Wümme),FALSE
+10803358,Heidekreis,FALSE
+10803359,Stade,FALSE
+10803360,Uelzen,FALSE
+10803361,Verden,FALSE
+10803401,"Delmenhorst, Stadt",TRUE
+10803402,"Emden, Stadt",TRUE
+10803403,"Oldenburg (Oldenburg), Stadt",TRUE
+10803404,"Osnabrück, Stadt",TRUE
+10803405,"Wilhelmshaven, Stadt",TRUE
+10803451,Ammerland,FALSE
+10803452,Aurich,FALSE
+10803453,Cloppenburg,FALSE
+10803454,Emsland,FALSE
+10803455,Friesland,FALSE
+10803456,Grafschaft Bentheim,FALSE
+10803457,Leer,FALSE
+10803458,Oldenburg,FALSE
+10803459,Osnabrück,FALSE
+10803460,Vechta,FALSE
+10803461,Wesermarsch,FALSE
+10803462,Wittmund,FALSE
+10804011,"Bremen, Stadt",TRUE
+10804012,"Bremerhaven, Stadt",TRUE
+10805111,"Düsseldorf, Stadt",TRUE
+10805112,"Duisburg, Stadt",TRUE
+10805113,"Essen, Stadt",TRUE
+10805114,"Krefeld, Stadt",TRUE
+10805116,"Mönchengladbach, Stadt",TRUE
+10805117,"Mülheim an der Ruhr, Stadt",TRUE
+10805119,"Oberhausen, Stadt",TRUE
+10805120,"Remscheid, Stadt",TRUE
+10805122,"Solingen, Stadt",TRUE
+10805124,"Wuppertal, Stadt",TRUE
+10805154,Kleve,FALSE
+10805158,Mettmann,FALSE
+10805162,Neuss,FALSE
+10805166,Viersen,FALSE
+10805170,Wesel,FALSE
+10805313,"Aachen, Stadt",TRUE
+10805314,"Bonn, Stadt",TRUE
+10805315,"Köln, Stadt",TRUE
+10805316,"Leverkusen, Stadt",TRUE
+10805354,Aachen,FALSE
+10805358,Düren,FALSE
+10805362,Erftkreis,FALSE
+10805366,Euskirchen,FALSE
+10805370,Heinsberg,FALSE
+10805374,Oberbergischer Kreis,FALSE
+10805378,Rheinisch-Bergischer Kreis,FALSE
+10805382,Rhein-Sieg-Kreis,FALSE
+10805512,"Bottrop, Stadt",TRUE
+10805513,"Gelsenkirchen, Stadt",TRUE
+10805515,"Münster, Stadt",TRUE
+10805554,Borken,FALSE
+10805558,Coesfeld,FALSE
+10805562,Recklinghausen,FALSE
+10805566,Steinfurt,FALSE
+10805570,Warendorf,FALSE
+10805711,"Bielefeld, Stadt",TRUE
+10805754,Gütersloh,FALSE
+10805758,Herford,FALSE
+10805762,Höxter,FALSE
+10805766,Lippe,FALSE
+10805770,Minden-Lübbecke,FALSE
+10805774,Paderborn,FALSE
+10805911,"Bochum, Stadt",TRUE
+10805913,"Dortmund, Stadt",TRUE
+10805914,"Hagen, Stadt",TRUE
+10805915,"Hamm, Stadt",TRUE
+10805916,"Herne, Stadt",TRUE
+10805954,Ennepe-Ruhr-Kreis,FALSE
+10805958,Hochsauerlandkreis,FALSE
+10805962,Märkischer Kreis,FALSE
+10805966,Olpe,FALSE
+10805970,Siegen-Wittgenstein,FALSE
+10805974,Soest,FALSE
+10805978,Unna,FALSE
+10806411,"Darmstadt, Stadt",TRUE
+10806412,"Frankfurt am Main, Stadt",TRUE
+10806413,"Offenbach am Main, Stadt",TRUE
+10806414,"Wiesbaden, Stadt",TRUE
+10806431,Bergstraße,FALSE
+10806432,Darmstadt-Dieburg,FALSE
+10806433,Groß-Gerau,FALSE
+10806434,Hochtaunuskreis,FALSE
+10806435,Main-Kinzig-Kreis,FALSE
+10806436,Main-Taunus-Kreis,FALSE
+10806437,Odenwaldkreis,FALSE
+10806438,Offenbach,FALSE
+10806439,Rheingau-Taunus-Kreis,FALSE
+10806440,Wetteraukreis,FALSE
+10806531,Gießen,FALSE
+10806532,Lahn-Dill-Kreis,FALSE
+10806533,Limburg-Weilburg,FALSE
+10806534,Marburg-Biedenkopf,FALSE
+10806535,Vogelsbergkreis,FALSE
+10806611,"Kassel, Stadt",TRUE
+10806631,Fulda,FALSE
+10806632,Hersfeld-Rotenburg,FALSE
+10806633,Kassel,FALSE
+10806634,Schwalm-Eder-Kreis,FALSE
+10806635,Waldeck-Frankenberg,FALSE
+10806636,Werra-Meißner-Kreis,FALSE
+10807111,"Koblenz, Stadt",TRUE
+10807131,Ahrweiler,FALSE
+10807132,Altenkirchen (Westerwald),FALSE
+10807133,Bad Kreuznach,FALSE
+10807134,Birkenfeld,FALSE
+10807135,Cochem-Zell,FALSE
+10807137,Mayen-Koblenz,FALSE
+10807138,Neuwied,FALSE
+10807140,Rhein-Hunsrück-Kreis,FALSE
+10807141,Rhein-Lahn-Kreis,FALSE
+10807143,Westerwaldkreis,FALSE
+10807211,"Trier, Stadt",TRUE
+10807231,Bernkastel-Wittlich,FALSE
+10807232,Bitburg-Prüm,FALSE
+10807233,Daun,FALSE
+10807235,Trier-Saarburg,FALSE
+10807311,"Frankenthal (Pfalz), Stadt",TRUE
+10807312,"Kaiserslautern, Stadt",TRUE
+10807313,"Landau in der Pfalz, Stadt",TRUE
+10807314,"Ludwigshafen am Rhein, Stadt",TRUE
+10807315,"Mainz, Stadt",TRUE
+10807316,"Neustadt an der Weinstraße, Stadt",TRUE
+10807317,"Pirmasens, Stadt",TRUE
+10807318,"Speyer, Stadt",TRUE
+10807319,"Worms, Stadt",TRUE
+10807320,"Zweibrücken, Stadt",TRUE
+10807331,Alzey-Worms,FALSE
+10807332,Bad Dürkheim,FALSE
+10807333,Donnersbergkreis,FALSE
+10807334,Germersheim,FALSE
+10807335,Kaiserslautern,FALSE
+10807336,Kusel,FALSE
+10807337,Südliche Weinstraße,FALSE
+10807338,Rhein-Pfalz-Kreis,FALSE
+10807339,Mainz-Bingen,FALSE
+10807340,Südwestpfalz,FALSE
+10808111,"Stuttgart, Stadt",TRUE
+10808115,Böblingen,FALSE
+10808116,Esslingen,FALSE
+10808117,Göppingen,FALSE
+10808118,Ludwigsburg,FALSE
+10808119,Rems-Murr-Kreis,FALSE
+10808121,"Heilbronn, Stadt",TRUE
+10808125,Heilbronn,FALSE
+10808126,Hohenlohekreis,FALSE
+10808127,Schwäbisch Hall,FALSE
+10808128,Main-Tauber-Kreis,FALSE
+10808135,Heidenheim,FALSE
+10808136,Ostalbkreis,FALSE
+10808211,"Baden-Baden, Stadt",TRUE
+10808212,"Karlsruhe, Stadt",TRUE
+10808215,Karlsruhe,FALSE
+10808216,Rastatt,FALSE
+10808221,"Heidelberg, Stadt",TRUE
+10808222,"Mannheim, Stadt",TRUE
+10808225,Neckar-Odenwald-Kreis,FALSE
+10808226,Rhein-Neckar-Kreis,FALSE
+10808231,"Pforzheim, Stadt",TRUE
+10808235,Calw,FALSE
+10808236,Enzkreis,FALSE
+10808237,Freudenstadt,FALSE
+10808311,"Freiburg im Breisgau, Stadt",TRUE
+10808315,Breisgau-Hochschwarzwald,FALSE
+10808316,Emmendingen,FALSE
+10808317,Ortenaukreis,FALSE
+10808325,Rottweil,FALSE
+10808326,Schwarzwald-Baar-Kreis,FALSE
+10808327,Tuttlingen,FALSE
+10808335,Konstanz,FALSE
+10808336,Lörrach,FALSE
+10808337,Waldshut,FALSE
+10808415,Reutlingen,FALSE
+10808416,Tübingen,FALSE
+10808417,Zollernalbkreis,FALSE
+10808421,"Ulm, Stadt",TRUE
+10808425,Alb-Donau-Kreis,FALSE
+10808426,Biberach,FALSE
+10808435,Bodenseekreis,FALSE
+10808436,Ravensburg,FALSE
+10808437,Sigmaringen,FALSE
+10809161,"Ingolstadt, Stadt",TRUE
+10809162,"München, Stadt",TRUE
+10809163,"Rosenheim, Stadt",TRUE
+10809171,Altötting,FALSE
+10809172,Berchtesgadener Land,FALSE
+10809173,Bad Tölz-Wolfratshausen,FALSE
+10809174,Dachau,FALSE
+10809175,Ebersberg,FALSE
+10809176,Eichstätt,FALSE
+10809177,Erding,FALSE
+10809178,Freising,FALSE
+10809179,Fürstenfeldbruck,FALSE
+10809180,Garmisch-Partenkirchen,FALSE
+10809181,Landsberg a.Lech,FALSE
+10809182,Miesbach,FALSE
+10809183,Mühldorf a.Inn,FALSE
+10809184,München,FALSE
+10809185,Neuburg-Schrobenhausen,FALSE
+10809186,Pfaffenhofen a.d.Ilm,FALSE
+10809187,Rosenheim,FALSE
+10809188,Starnberg,FALSE
+10809189,Traunstein,FALSE
+10809190,Weilheim-Schongau,FALSE
+10809261,"Landshut, Stadt",TRUE
+10809262,"Passau, Stadt",TRUE
+10809263,"Straubing, Stadt",TRUE
+10809271,Deggendorf,FALSE
+10809272,Freyung-Grafenau,FALSE
+10809273,Kelheim,FALSE
+10809274,Landshut,FALSE
+10809275,Passau,FALSE
+10809276,Regen,FALSE
+10809277,Rottal-Inn,FALSE
+10809278,Straubing-Bogen,FALSE
+10809279,Dingolfing-Landau,FALSE
+10809361,"Amberg, Stadt",TRUE
+10809362,"Regensburg, Stadt",TRUE
+10809363,"Weiden i.d.OPf., Stadt",TRUE
+10809371,Amberg-Sulzbach,FALSE
+10809372,Cham,FALSE
+10809373,Neumarkt i.d.OPf.,FALSE
+10809374,Neustadt a.d.Waldnaab,FALSE
+10809375,Regensburg,FALSE
+10809376,Schwandorf,FALSE
+10809377,Tirschenreuth,FALSE
+10809461,"Bamberg, Stadt",TRUE
+10809462,"Bayreuth, Stadt",TRUE
+10809463,"Coburg, Stadt",TRUE
+10809464,"Hof, Stadt",TRUE
+10809471,Bamberg,FALSE
+10809472,Bayreuth,FALSE
+10809473,Coburg,FALSE
+10809474,Forchheim,FALSE
+10809475,Hof,FALSE
+10809476,Kronach,FALSE
+10809477,Kulmbach,FALSE
+10809478,Lichtenfels,FALSE
+10809479,Wunsiedel i.Fichtelgebirge,FALSE
+10809561,"Ansbach, Stadt",TRUE
+10809562,"Erlangen, Stadt",TRUE
+10809563,"Fürth, Stadt",TRUE
+10809564,"Nürnberg, Stadt",TRUE
+10809565,"Schwabach, Stadt",TRUE
+10809571,Ansbach,FALSE
+10809572,Erlangen-Höchstadt,FALSE
+10809573,Fürth,FALSE
+10809574,Nürnberger Land,FALSE
+10809575,Neustadt a.d.Aisch-Bad Windsheim,FALSE
+10809576,Roth,FALSE
+10809577,Weißenburg-Gunzenhausen,FALSE
+10809661,"Aschaffenburg, Stadt",TRUE
+10809662,"Schweinfurt, Stadt",TRUE
+10809663,"Würzburg, Stadt",TRUE
+10809671,Aschaffenburg,FALSE
+10809672,Bad Kissingen,FALSE
+10809673,Rhön-Grabfeld,FALSE
+10809674,Haßberge,FALSE
+10809675,Kitzingen,FALSE
+10809676,Miltenberg,FALSE
+10809677,Main-Spessart,FALSE
+10809678,Schweinfurt,FALSE
+10809679,Würzburg,FALSE
+10809761,"Augsburg, Stadt",TRUE
+10809762,"Kaufbeuren, Stadt",TRUE
+10809763,"Kempten (Allgäu), Stadt",TRUE
+10809764,"Memmingen, Stadt",TRUE
+10809771,Aichach-Friedberg,FALSE
+10809772,Augsburg,FALSE
+10809773,Dillingen a.d.Donau,FALSE
+10809774,Günzburg,FALSE
+10809775,Neu-Ulm,FALSE
+10809776,Lindau (Bodensee),FALSE
+10809777,Ostallgäu,FALSE
+10809778,Unterallgäu,FALSE
+10809779,Donau-Ries,FALSE
+10809780,Oberallgäu,FALSE
+10810041,Stadtverband Saarbrücken,FALSE
+10810042,Merzig-Wadern,FALSE
+10810043,Neunkirchen,FALSE
+10810044,Saarlouis,FALSE
+10810045,Saar-Pfalz-Kreis,FALSE
+10810046,St. Wendel,FALSE
+108110,"Berlin, Stadt",FALSE
+10811001,Berlin Mitte,FALSE
+10811002,Berlin Friedrichshain-Kreuzberg,FALSE
+10811003,Berlin Pankow,FALSE
+10811004,Berlin Charlottenburg-Wilmersdorf,FALSE
+10811005,Berlin Spandau,FALSE
+10811006,Berlin Steglitz-Zehlendorf,FALSE
+10811007,Berlin Tempelhof-Schöneberg,FALSE
+10811008,Berlin Neukölln,FALSE
+10811009,Berlin Treptow-Köpenick,FALSE
+10811010,Berlin Marzahn-Hellersdorf,FALSE
+10811011,Berlin Lichtenberg,FALSE
+10811012,Berlin Reinickendorf,FALSE
+10812051,"Brandenburg an der Havel, Stadt",FALSE
+10812052,"Cottbus, Stadt",FALSE
+10812053,"Frankfurt (Oder), Stadt",FALSE
+10812054,"Potsdam, Stadt",FALSE
+10812060,Barnim,FALSE
+10812061,Dahme-Spreewald,FALSE
+10812062,Elbe-Elster,FALSE
+10812063,Havelland,FALSE
+10812064,Märkisch-Oderland,FALSE
+10812065,Oberhavel,FALSE
+10812066,Oberspreewald-Lausitz,FALSE
+10812067,Oder-Spree,FALSE
+10812068,Ostprignitz-Ruppin,FALSE
+10812069,Potsdam-Mittelmark,FALSE
+10812070,Prignitz,FALSE
+10812071,Spree-Neiße,FALSE
+10812072,Teltow-Fläming,FALSE
+10812073,Uckermark,FALSE
+10813001,Greifswald,TRUE
+10813002,Neubrandenburg,TRUE
+10813003,Rostock,TRUE
+10813004,Schwerin,TRUE
+10813005,Stralsund,TRUE
+10813006,Wismar,TRUE
+10813051,Bad Doberan,FALSE
+10813052,Demmin,FALSE
+10813053,Güstrow,FALSE
+10813054,Ludwigslust,FALSE
+10813055,Mecklenburg-Strelitz,FALSE
+10813056,Müritz,FALSE
+10813057,Nordvorpommern,FALSE
+10813058,Nordwestmecklenburg,FALSE
+10813059,Ostvorpommern,FALSE
+10813060,Parchim,FALSE
+10813061,Rügen,FALSE
+10813062,Uecker-Randow,FALSE
+10814161,"Chemnitz, Stadt",FALSE
+10814166,"Plauen, Stadt",FALSE
+10814167,"Zwickau, Stadt",FALSE
+10814171,Annaberg,FALSE
+10814173,Chemnitzer Land,FALSE
+10814177,Freiberg,FALSE
+10814178,Vogtlandkreis,FALSE
+10814181,Mittlerer Erzgebirgskreis,FALSE
+10814182,Mittweida,FALSE
+10814188,Stollberg,FALSE
+10814191,Aue-Schwarzenberg,FALSE
+10814193,Zwickauer Land,FALSE
+10814262,"Dresden, Stadt",TRUE
+10814263,"Görlitz, Stadt",FALSE
+10814264,"Hoyerswerda, Stadt",FALSE
+10814272,Bautzen,FALSE
+10814280,Meißen,FALSE
+10814284,Niederschles. Oberlausitzkreis,FALSE
+10814285,Riesa-Großenhain,FALSE
+10814286,Löbau-Zittau,FALSE
+10814287,Sächsische Schweiz,FALSE
+10814290,Weißeritzkreis,FALSE
+10814292,Kamenz,FALSE
+10814365,"Leipzig, Stadt",TRUE
+10814374,Delitzsch,FALSE
+10814375,Döbeln,FALSE
+10814379,Leipziger Land,FALSE
+10814383,Muldentalkreis,FALSE
+10814389,Torgau-Oschatz,FALSE
+10815101,"Dessau, Stadt",TRUE
+10815151,Anhalt-Zerbst,FALSE
+10815153,Bernburg,FALSE
+10815154,Bitterfeld,FALSE
+10815159,Köthen,FALSE
+10815171,Wittenberg,FALSE
+10815202,"Halle (Saale), Stadt",TRUE
+10815256,Burgenlandkreis,FALSE
+10815260,Mansfelder Land,FALSE
+10815261,Merseburg-Querfurt,FALSE
+10815265,Saalkreis,FALSE
+10815266,Sangerhausen,FALSE
+10815268,Weißenfels,FALSE
+10815303,"Magdeburg, Stadt",TRUE
+10815352,Aschersleben-Staßfurt,FALSE
+10815355,Bördekreis,FALSE
+10815357,Halberstadt,FALSE
+10815358,Jerichower Land,FALSE
+10815362,Ohrekreis,FALSE
+10815363,Stendal,FALSE
+10815364,Quedlinburg,FALSE
+10815367,Schönebeck,FALSE
+10815369,Wernigerode,FALSE
+10815370,Altmarkkreis Salzwedel,FALSE
+10816051,"Erfurt, Stadt",FALSE
+10816052,"Gera, Stadt",FALSE
+10816053,"Jena, Stadt",FALSE
+10816054,"Suhl, Stadt",FALSE
+10816055,"Weimar, Stadt",FALSE
+10816056,"Eisenach, Stadt",FALSE
+10816061,Eichsfeld,FALSE
+10816062,Nordhausen,FALSE
+10816063,Wartburgkreis,FALSE
+10816064,Unstrut-Hainich-Kreis,FALSE
+10816065,Kyffhäuserkreis,FALSE
+10816066,Schmalkalden-Meiningen,FALSE
+10816067,Gotha,FALSE
+10816068,Sömmerda,FALSE
+10816069,Hildburghausen,FALSE
+10816070,Ilm-Kreis,FALSE
+10816071,Weimarer Land,FALSE
+10816072,Sonneberg,FALSE
+10816073,Saalfeld-Rudolstadt,FALSE
+10816074,Saale-Holzland-Kreis,FALSE
+10816075,Saale-Orla-Kreis,FALSE
+10816076,Greiz,FALSE
+10816077,Altenburger Land,FALSE
