@@ -365,7 +365,7 @@ for geoid, data_country, distribution_type, data_source in country_values:
         distribution_type=distribution_type
     )
 
-    s3_path_json = f"s3://consume-batch-ma-with_cr-ecd-{ENV_NAME}/data/{data_country.lower()}/{distribution_type.lower()}/json/partitioncreateddate={GlobalVariables.today}"
+    s3_path_json = f"s3://consume-batch-ma-with-cr-ecd-{ENV_NAME}/data/{data_country.lower()}/{distribution_type.lower()}/json/partitioncreateddate={GlobalVariables.today}"
     AmazonS3_node1714127201181 = glueContext.write_dynamic_frame.from_options(
         frame=json_df, 
         connection_type="s3", 
@@ -378,7 +378,7 @@ for geoid, data_country, distribution_type, data_source in country_values:
         transformation_ctx="AmazonS3_node1714127201181"
     )
 
-    s3_path_csv = f"s3://consume-batch-ma-with_cr-ecd-{ENV_NAME}/data/{data_country.lower()}/{distribution_type.lower()}/csv/partitioncreateddate={GlobalVariables.today}"
+    s3_path_csv = f"s3://consume-batch-ma-with-cr-ecd-{ENV_NAME}/data/{data_country.lower()}/{distribution_type.lower()}/csv/partitioncreateddate={GlobalVariables.today}"
     AmazonS3_node1714127201182 = glueContext.write_dynamic_frame.from_options(
         frame=csv_df.coalesce(1),
         connection_type="s3",

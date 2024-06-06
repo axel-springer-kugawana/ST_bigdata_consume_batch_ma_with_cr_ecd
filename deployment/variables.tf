@@ -1,7 +1,7 @@
 variable "bucket" {
   description = "Bucket name"
   type        = string
-  default     = "consume-batch-ma-with_cr-ecd"
+  default     = "consume-batch-ma-with-cr-ecd"
 }
 variable "account_id" {
   description = "Identifier for the destination account"
