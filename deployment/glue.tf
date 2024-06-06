@@ -95,15 +95,6 @@ resource "aws_s3_object" "upload-basedata_df_query" {
   depends_on = [aws_s3_bucket.bucket]
 }
 
-resource "aws_s3_object" "upload-pricechange_df_query" {
-  bucket = "${var.bucket}-${var.env}"
-  key    = "scripts/pricechange_df_query.sql"
-  source = "../../script/static_files/pricechange_df_query.sql"
-  etag   = filemd5("../../script/static_files/pricechange_df_query.sql")
-
-  depends_on = [aws_s3_bucket.bucket]
-}
-
 resource "aws_glue_job" "glue-job" {
   name = "${var.bucket}-${var.env}"
 
