@@ -368,8 +368,8 @@ for geoid, data_country, distribution_type, data_source in country_values:
         format="json",
         compression="gzip",
         connection_options={
-            "path": s3_path_json,
-            "optimizePerformance": True
+            "compression"="gzip",
+            "path": s3_path_json
         },
         transformation_ctx="AmazonS3_node1714127201181"
     )
@@ -378,10 +378,10 @@ for geoid, data_country, distribution_type, data_source in country_values:
     AmazonS3_node1714127201182 = glueContext.write_dynamic_frame.from_options(
         frame=csv_df.coalesce(1),
         connection_type="s3",
-        compression="gzip",
         format="csv", 
         connection_options={
-            "path": s3_path_csv,
+            "compression"="gzip",
+            "path": s3_path_csv
         },
         transformation_ctx="AmazonS3_node1714127201181"
     )
