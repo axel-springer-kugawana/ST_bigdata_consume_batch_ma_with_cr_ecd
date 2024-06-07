@@ -15,7 +15,7 @@ BaseDataAll as (
         baseRank = 1
         AND classified_geo_countrySpecific_de_iwtLegacyGeoID like '{geoid}%'
         AND cleanupdataproblems <= 3
-  AND cleaned_classified_distributionType == '{distribution_type}'
+  AND cleaned_classified_distributionType = '{distribution_type}'
 ),
 
 oc as (
@@ -27,6 +27,7 @@ oc as (
         baseRank = 1
         AND classified_geo_countrySpecific_de_iwtLegacyGeoID like '{geoid}%'
         AND cleanupdataproblems <= 3
+        AND cleaned_classified_distributionType = '{distribution_type}'
         AND (cleaned_classified_structure_building_floorNumber >= 0 or 
             cleaned_classified_structure_building_floorNumber is NULL)
         AND (classified_management_rent_certificateOfEligibilityNeeded is null or 
@@ -34,7 +35,6 @@ oc as (
         AND (classified_features_residential_flatSharePossible is NULL or 
             classified_features_residential_flatSharePossible != 'YES')
         AND cleaned_classified_geo_postalcode != ''
-        AND cleaned_classified_distributionType == '{distribution_type}'
         AND (classified_features_furnished is NULL or
             classified_features_furnished = 'NOT_APPLICABLE')
         AND classified_estateType IN ('HOUSE', 'APARTMENT')
@@ -134,7 +134,7 @@ BaseDataCleaned AS
     left join BaseDataInvalid bdi
         on bd.classified_metaData_classifiedId = bdi.classified_metaData_classifiedId
     where bdi.classified_metaData_classifiedId is null
-)
+),
 
 CurrentMonthChanges as (
     SELECT 
