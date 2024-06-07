@@ -389,7 +389,7 @@ for geoid, data_country, distribution_type, data_source in country_values:
 # delete insert instead of replacewhere
 glueContext.purge_table(
     database="kafka", 
-    table_name="offers_ma_all_unified", 
+    table_name="offers_ma_geo", 
     options={
         "partitionPredicate": f"(partitionmonth == '{GlobalVariables.partition_month}')", 
         "retentionPeriod": 1
@@ -403,7 +403,7 @@ union_df.printSchema()
 AWSGlueDataCatalog_node1709799333156 = glueContext.write_dynamic_frame.from_catalog(
     frame=union_df, 
     database="kafka", 
-    table_name="offers_ma_all_unified", 
+    table_name="offers_ma_geo", 
     additional_options={
         "enableUpdateCatalog": True, 
         "updateBehavior": "UPDATE_IN_DATABASE", 
