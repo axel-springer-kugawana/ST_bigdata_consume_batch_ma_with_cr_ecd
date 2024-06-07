@@ -8,10 +8,6 @@ geo_street
 geo_houseNumber
 spaces_residential_livingSpace
 spaces_residential_plotSpace
-features_garden
-features_residential_loggia
-features_residential_chimney
-features_furnished
 conditions_yearOfConstruction
 metaData_classifiedId
 metaData_changeDate
