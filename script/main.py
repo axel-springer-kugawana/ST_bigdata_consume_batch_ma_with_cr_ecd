@@ -366,9 +366,8 @@ for geoid, data_country, distribution_type, data_source in country_values:
         frame=json_df, 
         connection_type="s3", 
         format="json",
-        compression="gzip",
         connection_options={
-            "compression"="gzip",
+            "compression": "gzip",
             "path": s3_path_json
         },
         transformation_ctx="AmazonS3_node1714127201181"
@@ -380,7 +379,7 @@ for geoid, data_country, distribution_type, data_source in country_values:
         connection_type="s3",
         format="csv", 
         connection_options={
-            "compression"="gzip",
+            "compression": "gzip",
             "path": s3_path_csv
         },
         transformation_ctx="AmazonS3_node1714127201181"
