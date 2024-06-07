@@ -129,7 +129,7 @@ BaseDataInvalid AS
 
 BaseDataCleaned AS
 (
-    SELECT *
+    SELECT bd.*
     from BaseData bd
     left join BaseDataInvalid bdi
         on bd.classified_metaData_classifiedId = bdi.classified_metaData_classifiedId
