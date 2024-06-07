@@ -185,14 +185,10 @@ def modifyDataJson(glueContext, df, distribution_type) ->  DynamicFrame:
                    .withColumn("features_furnished",F.when(F.col("classified_features_furnished").isNotNull(),
                                                                           F.col("classified_features_furnished"))
                                                                           .otherwise("NOT_APPLICABLE"))\
-                    .withColumn("conditions_yearOfConstruction",F.col("classified_conditions_yearOfConstruction"))\
                     .withColumn("conditions_userDefined_immoWelt_research_ageState",
                                 F.col("userDefined_immoWelt_research_ageState"))\
                     .withColumn("conditions_userDefined_immoWelt_research_buildState",
                                 F.col("userDefined_immoWelt_research_buildState"))\
-                    .withColumn("metaData_classifiedId",F.col("classified_metaData_classifiedId"))\
-                    .withColumn("metaData_changeDate",F.col("classified_metaData_changeDate"))\
-                    .withColumn("metaData_createDate",F.col("classified_metaData_createDate"))\
                     .withColumn("energy_energyType_heatMethod",F.when(F.col("classified_energy_energyType_heatMethod").isNotNull(),
                                                                           F.col("classified_energy_energyType_heatMethod"))
                                                                           .otherwise("NOT_APPLICABLE"))\
