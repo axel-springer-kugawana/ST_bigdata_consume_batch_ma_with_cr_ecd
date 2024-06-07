@@ -95,6 +95,7 @@ class GlobalVariables:
         'rank',
         'rankAll',
         'rank_all',
+        'rank_current_month'
     ]
 
     cols_to_drop_json = [
