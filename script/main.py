@@ -244,7 +244,11 @@ def modifyDataJson(glueContext, df, distribution_type) ->  DynamicFrame:
             colname,
         )
 
-    cols_to_drop = [c for c in ret_df.columns if c.startswith('classified_') or c.startswith('userDefined_')]
+    cols_to_keep = [
+        'userDefined_immoWelt_contact-requests', 'userDefined_immoWelt_iw-contact-requests', 'userDefined_immoWelt_in-contact-requests',
+        'userDefined_immoWelt_expose-visits', 'userDefined_immoWelt_iw-expose-visits', 'userDefined_immoWelt_in-expose-visits',
+    ]
+    cols_to_drop = [c for c in ret_df.columns if c.startswith('classified_') or (c.startswith('userDefined_') and c not in cols_to_keep)]
     ret_df = ret_df.drop(*cols_to_drop)
 
     select_col_list = Helper.nest_schema(ret_df.schema)
