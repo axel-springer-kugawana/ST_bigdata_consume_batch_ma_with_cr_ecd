@@ -110,7 +110,13 @@ def modifyDataJson(glueContext, df, distribution_type) ->  DynamicFrame:
                     .withColumn("prices_rent_operatingCosts_currency",F.col("classified_prices_currency"))
     
     # special columns
-    ret_df = ret_df.withColumn("spaces_residential_floorNo",F.when(F.col("classified_structure_building_floorNumber").isNotNull(),
+    ret_df = ret_df.withColumn("spaces_residential_livingSpace",F.when(F.col("classified_spaces_residential_livingSpace").isNotNull(),
+                                                                          F.col("classified_spaces_residential_livingSpace"))
+                                                                          .otherwise(0.0).cast("float"))\
+                    .withColumn("spaces_residential_plotSpace",F.when(F.col("classified_spaces_residential_plotSpace").isNotNull(),
+                                                                          F.col("classified_spaces_residential_plotSpace"))
+                                                                          .otherwise(0.0).cast("float"))\
+                    .withColumn("spaces_residential_floorNo",F.when(F.col("classified_structure_building_floorNumber").isNotNull(),
                                                                           F.col("classified_structure_building_floorNumber"))
                                                                           .otherwise(0)
                                                                           )\
@@ -258,6 +264,15 @@ def modifyDataJson(glueContext, df, distribution_type) ->  DynamicFrame:
 
     ret_df = ret_df.coalesce(1)
 
+    # add debugging columns
+    ret_df = (ret_df
+          .withColumn("metaData_changeLog_timestamp", F.current_timestamp() )
+          .withColumn("metaData_changeLog_system", F.lit("AwsGlueExportScript") )
+          .withColumn("metaData_changeLog_version", F.lit("1.1") )
+          .withColumn("metaData_changeLog_operation", F.lit("UPDATE") )
+          .withColumn("metaData_changeLog_note", F.lit("Exported to json file") )
+)
+    
     return DynamicFrame.fromDF(ret_df, glueContext, 'json')
 
 

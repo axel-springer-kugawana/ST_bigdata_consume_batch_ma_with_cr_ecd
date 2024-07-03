@@ -6,8 +6,6 @@ geo_postalcode
 geo_city
 geo_street
 geo_houseNumber
-spaces_residential_livingSpace
-spaces_residential_plotSpace
 conditions_yearOfConstruction
 metaData_classifiedId
 metaData_changeDate
