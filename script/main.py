@@ -110,10 +110,10 @@ def modifyDataJson(glueContext, df, distribution_type) ->  DynamicFrame:
                     .withColumn("prices_rent_operatingCosts_currency",F.col("classified_prices_currency"))
     
     # special columns
-    ret_df = ret_df.withColumn("spaces_residential_livingSpace",F.when((F.col("classified_spaces_residential_livingSpace").isNotNull()) & (F.trim(F.col("classified_spaces_residential_livingSpace") != "")),
+    ret_df = ret_df.withColumn("spaces_residential_livingSpace",F.when((F.col("classified_spaces_residential_livingSpace").isNotNull()) & (F.trim(F.col("classified_spaces_residential_livingSpace")) != ""),
                                                                           F.col("classified_spaces_residential_livingSpace"))
                                                                           .otherwise(0.0).cast("float"))\
-                    .withColumn("spaces_residential_plotSpace",F.when((F.col("classified_spaces_residential_plotSpace").isNotNull()) & (F.trim(F.col("classified_spaces_residential_plotSpace") != "")),
+                    .withColumn("spaces_residential_plotSpace",F.when((F.col("classified_spaces_residential_plotSpace").isNotNull()) & (F.trim(F.col("classified_spaces_residential_plotSpace")) != ""),
                                                                           F.col("classified_spaces_residential_plotSpace"))
                                                                           .otherwise(0.0).cast("float"))\
                     .withColumn("spaces_residential_floorNo",F.when(F.col("classified_structure_building_floorNumber").isNotNull(),
