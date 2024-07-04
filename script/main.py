@@ -257,13 +257,6 @@ def modifyDataJson(glueContext, df, distribution_type) ->  DynamicFrame:
     cols_to_drop = [c for c in ret_df.columns if c.startswith('classified_') or (c.startswith('userDefined_') and c not in cols_to_keep)]
     ret_df = ret_df.drop(*cols_to_drop)
 
-    select_col_list = Helper.nest_schema(ret_df.schema)
-    ret_df = ret_df.select(*select_col_list)
-    if 'subTypes' in ret_df.columns:
-        ret_df = Helper.construct_MapType(ret_df, key_col="estateType", value_col="subTypes", new_col_name="subTypes")
-
-    ret_df = ret_df.coalesce(1)
-
     # add debugging columns
     ret_df = (ret_df
           .withColumn("metaData_changeLog_timestamp", F.current_timestamp() )
@@ -271,7 +264,15 @@ def modifyDataJson(glueContext, df, distribution_type) ->  DynamicFrame:
           .withColumn("metaData_changeLog_version", F.lit("1.1") )
           .withColumn("metaData_changeLog_operation", F.lit("UPDATE") )
           .withColumn("metaData_changeLog_note", F.lit("Exported to json file") )
-)
+    )
+    
+    select_col_list = Helper.nest_schema(ret_df.schema)
+    ret_df = ret_df.select(*select_col_list)
+    if 'subTypes' in ret_df.columns:
+        ret_df = Helper.construct_MapType(ret_df, key_col="estateType", value_col="subTypes", new_col_name="subTypes")
+
+    ret_df = ret_df.coalesce(1)
+
     
     return DynamicFrame.fromDF(ret_df, glueContext, 'json')
 
