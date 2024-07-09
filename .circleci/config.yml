@@ -8,6 +8,7 @@ orbs:
 
 jobs:
   aws_configure:
+    resource_class: small
     parameters:
       profile:
         type: string
@@ -29,6 +30,7 @@ jobs:
       AWS_DEFAULT_REGION: eu-central-1
 
   terraform_plan:
+    resource_class: small
     parameters:
       plan_path:
         type: string
@@ -55,6 +57,7 @@ jobs:
       AWS_DEFAULT_REGION: eu-central-1
 
   terraform_apply:
+    resource_class: small
     parameters:
       deploy_path:
         type: string
