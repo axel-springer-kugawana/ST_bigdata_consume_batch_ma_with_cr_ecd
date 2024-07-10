@@ -307,7 +307,7 @@ red_red_cleaned_draft = glueContext.create_dynamic_frame.from_catalog(
     database="kafka",
     table_name="red_red_cleaned",
     # push_down_predicate=f"(partitioncreateddate>=to_date('{GlobalVariables.first_day_3_months_ago}') and partitioncreateddate<to_date('{GlobalVariables.first_day_next_month}'))",
-    transformation_ctx="red_red_cleaned"
+    transformation_ctx="red_red_cleaned_draft"
 )
 red_red_cleaned = update_delete(
     glueContext=glueContext,
