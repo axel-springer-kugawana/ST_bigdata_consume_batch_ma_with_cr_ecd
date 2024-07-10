@@ -38,7 +38,7 @@ def update_delete(glueContext, df) -> DynamicFrame:
     prefixes = ['classified_', 'cleaned_', 'cleanup', 'extracted_', 'grenzwert_']
 
     # Use dictionary comprehension to create lists of columns based on prefixes
-    filtered_columns = {prefix: ['b.' + x for x in columns if x.startswith(prefix)] for prefix in prefixes}
+    filtered_columns = ['b.' + x for prefix in prefixes for x in columns if x.startswith(prefix)]
     filtered_columns_str = ','.join(filtered_columns)
     ret_df = sparkSqlQuery(
         glueContext,

@@ -146,6 +146,9 @@ class Queries(Variables):
             first_day_3_months_ago=GlobalVariables.first_day_3_months_ago,
             first_day_next_month=GlobalVariables.first_day_next_month
         )
+
+        print('merge_delete_query:')
+        print(merge_delete_query)
         return merge_delete_query
 
     def get_BaseData_df_query(self) -> str:
@@ -159,4 +162,7 @@ class Queries(Variables):
             first_day_current_month=GlobalVariables.first_day_current_month,
             first_day_next_month=GlobalVariables.first_day_next_month
         )
+
+        print('BaseData_df_query:')
+        print(BaseData_df_query)
         return BaseData_df_query
