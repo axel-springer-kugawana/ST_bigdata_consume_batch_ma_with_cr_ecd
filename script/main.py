@@ -33,6 +33,23 @@ def sparkSqlQuery(glueContext, query, mapping, transformation_ctx) -> DynamicFra
     result = spark.sql(query)
     return DynamicFrame.fromDF(result, glueContext, transformation_ctx)
 
+def update_delete(glueContext, df) -> DynamicFrame:
+    columns = df.toDF().columns
+    prefixes = ['classified_', 'cleaned_', 'cleanup', 'extracted_', 'grenzwert_']
+
+    # Use dictionary comprehension to create lists of columns based on prefixes
+    filtered_columns = {prefix: ['b.' + x for x in columns if x.startswith(prefix)] for prefix in prefixes}
+    ret_df = sparkSqlQuery(
+        glueContext,
+        query=Queries.get_merge_delete_query(extra_columns=filtered_columns),
+        mapping={
+            "red_red_cleaned": df
+        },
+        transformation_ctx='merged_df'
+    )
+    ret_df = ret_df.drop_fields(paths=['rank'])
+    return ret_df
+
 def modifyData(glueContext, df, geoid) -> DynamicFrame:
     ret_df = df.toDF()
 
@@ -285,11 +302,15 @@ job = Job(glueContext)
 job.init(args["JOB_NAME"], args)
 
 ########## get base tables from data catalog
-red_red_cleaned = glueContext.create_dynamic_frame.from_catalog(
+red_red_cleaned_draft = glueContext.create_dynamic_frame.from_catalog(
     database="kafka",
     table_name="red_red_cleaned",
-    push_down_predicate=f"(partitioncreateddate>=to_date('{GlobalVariables.first_day_3_months_ago}') and partitioncreateddate<to_date('{GlobalVariables.first_day_next_month}'))",
+    # push_down_predicate=f"(partitioncreateddate>=to_date('{GlobalVariables.first_day_3_months_ago}') and partitioncreateddate<to_date('{GlobalVariables.first_day_next_month}'))",
     transformation_ctx="red_red_cleaned"
+)
+red_red_cleaned = update_delete(
+    glueContext=glueContext,
+    df=red_red_cleaned_draft
 )
 
 red_vd_cleaned_spark = glueContext.create_data_frame.from_catalog(
