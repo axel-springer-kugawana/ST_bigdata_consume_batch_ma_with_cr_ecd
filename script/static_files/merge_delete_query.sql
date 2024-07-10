@@ -22,5 +22,5 @@ select *
 from joined
 where
     rank = 1
-    and partitioncreateddate>=to_date('{first_day_3_months_ago}') 
-    and partitioncreateddate<to_date('{first_day_next_month}')
+    and to_date(changedate)>=to_date('{first_day_3_months_ago}') 
+    and to_date(changedate)<to_date('{first_day_next_month}')
