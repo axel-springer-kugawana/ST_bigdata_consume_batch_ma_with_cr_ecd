@@ -137,6 +137,16 @@ class Queries(Variables):
         super().__init__(distribution_type)
         self.distribution_type = distribution_type
         self.geoid = geoid
+    
+    @staticmethod
+    def get_merge_delete_query(extra_columns) -> str:
+        merge_delete_query = Helper.read_and_format_sql_query(
+            file_path="merge_delete_query.sql",
+            extra_columns=extra_columns,
+            first_day_3_months_ago=GlobalVariables.first_day_3_months_ago,
+            first_day_next_month=GlobalVariables.first_day_next_month
+        )
+        return merge_delete_query
 
     def get_BaseData_df_query(self) -> str:
         BaseData_df_query = Helper.read_and_format_sql_query(
@@ -150,12 +160,3 @@ class Queries(Variables):
             first_day_next_month=GlobalVariables.first_day_next_month
         )
         return BaseData_df_query
-    
-    def get_merge_delete_query(self, extra_columns) -> str:
-        merge_delete_query = Helper.read_and_format_sql_query(
-            file_path="merge_delete_query.sql",
-            extra_columns=extra_columns,
-            first_day_3_months_ago=GlobalVariables.first_day_3_months_ago,
-            first_day_next_month=GlobalVariables.first_day_next_month
-        )
-        return merge_delete_query
