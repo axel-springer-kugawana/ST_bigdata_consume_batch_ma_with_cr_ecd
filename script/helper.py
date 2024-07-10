@@ -139,16 +139,15 @@ class Queries(Variables):
         self.geoid = geoid
     
     @staticmethod
-    def get_merge_delete_query(extra_columns) -> str:
+    def get_merge_delete_query(extra_columns_wo_prefix, extra_columns_with_prefix) -> str:
         merge_delete_query = Helper.read_and_format_sql_query(
             file_path="merge_delete_query.sql",
-            extra_columns=extra_columns,
+            extra_columns_wo_prefix=extra_columns_wo_prefix,
+            extra_columns_with_prefix=extra_columns_with_prefix,
             first_day_3_months_ago=GlobalVariables.first_day_3_months_ago,
             first_day_next_month=GlobalVariables.first_day_next_month
         )
 
-        print('merge_delete_query:')
-        print(merge_delete_query)
         return merge_delete_query
 
     def get_BaseData_df_query(self) -> str:
@@ -163,6 +162,4 @@ class Queries(Variables):
             first_day_next_month=GlobalVariables.first_day_next_month
         )
 
-        print('BaseData_df_query:')
-        print(BaseData_df_query)
         return BaseData_df_query

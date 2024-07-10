@@ -2,7 +2,7 @@ with BaseDataFirst as (
     select 
     {attributes_all_string}, 
     ROW_NUMBER() OVER (PARTITION BY classified_metadata_classifiedid, to_date(classified_metadata_changedate) 
-                    ORDER BY classified_metadata_changedate DESC, changedate DESC) as baseRank
+                    ORDER BY classified_metadata_changedate DESC, partitionChangeDate DESC) as baseRank
     from red_red_cleaned
 ), 
 
