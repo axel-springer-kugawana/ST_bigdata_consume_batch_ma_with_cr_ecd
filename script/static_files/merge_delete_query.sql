@@ -41,7 +41,7 @@ final_non_deleted as (
     where operation != 'Delete'
     and partitionchangedate>=to_date('{first_day_3_months_ago}') 
     and partitionchangedate<to_date('{first_day_next_month}')
-)
+),
 
 final_union as (
     select
