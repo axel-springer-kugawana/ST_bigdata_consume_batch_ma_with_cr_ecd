@@ -43,7 +43,7 @@ oc as (
         AND cleaned_classified_spaces_residential_livingSpace BETWEEN 5 AND 500
         AND cleaned_classified_prices_buy_price_amount / cleaned_classified_spaces_residential_livingSpace > 1.
         AND cleaned_classified_structure_rooms_numberOfRooms <= 20
-        AND coalesce(classified_management_isForInvestment, false) != True
+        AND classified_management_isForInvestment is not true
 ),
 
 ecd as (
