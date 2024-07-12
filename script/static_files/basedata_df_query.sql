@@ -134,7 +134,7 @@ BaseDataAllMax AS
 (
 SELECT classified_metaData_classifiedId, max(classified_metaData_changeDate) max_metaData_changeDate
 FROM BaseDataAll
-WHERE classified_metaData_changeDate < < '{first_day_current_month}'
+WHERE classified_metaData_changeDate < '{first_day_current_month}'
 GROUP BY classified_metaData_classifiedId
 ),
 
