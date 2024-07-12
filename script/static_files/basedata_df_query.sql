@@ -218,3 +218,4 @@ WHERE rank = 1
 )
 )
 WHERE rankAll = 1
+AND fraudLevelId <= 0
