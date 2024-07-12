@@ -70,7 +70,7 @@ LEFT JOIN
 SELECT globalObjectKey, max(changeDate) lastChangeDate,
        max_by(controlData.FraudLevelId, changeDate) lastFraudLevelId
 FROM red_ecd
-  AND operation != 'Delete'
+  WHERE operation != 'Delete'
 GROUP BY globalObjectKey
 ) ecd ON oc.classified_metaData_classifiedId = ecd.globalObjectKey
 
