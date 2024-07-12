@@ -37,7 +37,7 @@ SELECT DISTINCT oc.*, ecd.lastFraudLevelId fraudLevelId,
                 ifnull(mapev.noInExposeVisits,0) userDefined_immoWelt_in_expose_visits
 FROM
 (
-SELECT DISTINCT {}
+SELECT DISTINCT {attributes_all_cleaned_string}
 FROM BaseDataFirst
 WHERE baseRank = 1
   AND classified_geo_countrySpecific_de_iwtLegacyGeoID like '{geoid}%'
@@ -70,8 +70,6 @@ LEFT JOIN
 SELECT globalObjectKey, max(changeDate) lastChangeDate,
        max_by(controlData.FraudLevelId, changeDate) lastFraudLevelId
 FROM red_ecd
-WHERE partitionChangeDate >= '{}'
-  AND partitionChangeDate < '{}'
   AND operation != 'Delete'
 GROUP BY globalObjectKey
 ) ecd ON oc.classified_metaData_classifiedId = ecd.globalObjectKey
@@ -108,14 +106,13 @@ ON oc.classified_metaData_classifiedId = mapev.classifiedId
 
 
   -- if required: regard only offers that are active (within activity periods)
-  WHERE ( {}==False OR classified_metaData_classifiedId IN 
+  WHERE classified_metaData_classifiedId IN 
 (
 SELECT distinct classifiedId
-FROM delta.`{}`
-WHERE aktivbis >= '{}'
-  AND aktivab < '{}'
-  AND classifiedId like '{}%'
-)
+FROM red_vd_cleaned
+WHERE aktivbis >= to_date('{first_day_current_month}')
+  AND aktivab < to_date('{first_day_next_month}')
+  AND classifiedId like '%'
 )
 
 ),
