@@ -134,3 +134,4 @@ FROM (
     )
 ) AS final
 WHERE rankAll = 1
+AND fraudLevelId <= 0
