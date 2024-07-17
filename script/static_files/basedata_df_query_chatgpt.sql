@@ -67,6 +67,7 @@ BaseDataFiltered AS (
       AND cleaned_classified_structure_rooms_numberOfRooms <= 20
       AND classified_management_isForInvestment IS NOT TRUE
 ),
+
 ActiveOffers AS (
     SELECT DISTINCT classifiedId
     FROM red_vd_cleaned
@@ -74,11 +75,13 @@ ActiveOffers AS (
       AND aktivab < TO_DATE('{first_day_next_month}')
       AND classifiedId LIKE '%'
 ),
+
 BaseData AS (
     SELECT *
     FROM BaseDataFiltered
     WHERE classified_metaData_classifiedId IN (SELECT classifiedId FROM ActiveOffers)
 ),
+
 BaseDataMax AS (
     SELECT classified_metaData_classifiedId, 
            MAX(classified_metaData_changeDate) AS max_metaData_changeDate
@@ -92,6 +95,7 @@ BaseDataAllMax AS (
     WHERE classified_metaData_changeDate < '{first_day_current_month}'
     GROUP BY classified_metaData_classifiedId
 ),
+
 BaseDataInvalid AS (
     SELECT max.classified_metaData_classifiedId
     FROM BaseDataMax AS max
@@ -99,6 +103,7 @@ BaseDataInvalid AS (
     ON max.classified_metaData_classifiedId = allMax.classified_metaData_classifiedId
     WHERE max.max_metaData_changeDate < allMax.max_metaData_changeDate
 ),
+
 BaseData2 AS (
     SELECT *
     FROM BaseData
@@ -113,6 +118,7 @@ PriceChangesWithinMonth AS (
     FROM BaseData2
     WHERE partitionChangeDate >= '{first_day_current_month}'
 ),
+
 LastPriceBeforeMonth AS (
     SELECT DISTINCT *,
            dense_rank() OVER (
@@ -122,6 +128,7 @@ LastPriceBeforeMonth AS (
     FROM BaseData2
     WHERE partitionChangeDate < '{first_day_current_month}'
 )
+
 SELECT DISTINCT *
 FROM (
     SELECT DISTINCT *,
