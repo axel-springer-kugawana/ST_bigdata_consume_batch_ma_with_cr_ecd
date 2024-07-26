@@ -1,6 +1,7 @@
 WITH BaseDataFirst AS
 (
-    SELECT *,
+    SELECT 
+        *,
         dense_rank() OVER (PARTITION BY classified_metaData_classifiedId, to_date(classified_metaData_changeDate)
                             ORDER BY classified_metaData_changeDate DESC, partitionChangeDate DESC) as baseRank
     FROM red_red_cleaned
@@ -8,7 +9,7 @@ WITH BaseDataFirst AS
 
 BaseDataAll AS
 (
-    SELECT DISTINCT 
+    SELECT 
         classified_metaData_classifiedId,
         classified_metaData_changeDate
     FROM BaseDataFirst
@@ -24,7 +25,7 @@ BaseData AS
 (
     SELECT DISTINCT *
     FROM (
-        SELECT DISTINCT 
+        SELECT 
             oc.*,
             ecd.lastFraudLevelId fraudLevelId,
             ifnull(mapcr.noContactRequests,0) userDefined_immoWelt_contact_requests,
@@ -34,7 +35,7 @@ BaseData AS
             ifnull(mapev.noIwExposeVisits,0) userDefined_immoWelt_iw_expose_visits,
             ifnull(mapev.noInExposeVisits,0) userDefined_immoWelt_in_expose_visits
         FROM (
-            SELECT DISTINCT 
+            SELECT 
                 {attributes_all_cleaned_string}
             FROM BaseDataFirst
             WHERE
@@ -96,7 +97,7 @@ BaseData AS
 
     -- if required: regard only offers that are active (within activity periods)
     WHERE classified_metaData_classifiedId IN (
-        SELECT distinct classifiedId
+        SELECT classifiedId
         FROM red_vd_cleaned
         WHERE
             aktivbis >= to_date('{first_day_current_month}')
@@ -132,20 +133,14 @@ BaseDataAllMax AS
 BaseDataInvalid AS
 (
     SELECT max.classified_metaData_classifiedId
-    FROM (
-        SELECT *
-        FROM BaseDataMax
-    ) max
-
-    LEFT JOIN (
-        SELECT *
-        FROM BaseDataAllMax
-    ) allMax ON max.classified_metaData_classifiedId = allMax.classified_metaData_classifiedId
+    FROM BaseDataMax max
+    LEFT JOIN BaseDataAllMax allMax 
+        ON max.classified_metaData_classifiedId = allMax.classified_metaData_classifiedId
     WHERE max.max_metaData_changeDate < allMax.max_metaData_changeDate
 ),
 
 -- eliminate invalid classifiedIds
-BaseData2 AS
+BaseData_final AS
 (
     SELECT *
     FROM BaseData
@@ -161,38 +156,35 @@ BaseData2 AS
 -- 1. price changes WITION the required time period (PARTITION BY classifiedId, price)
 -- 2. last price change BEFORE the required time period
 -- ensure to keep only the LAST record of duplicates
-SELECT DISTINCT *
+SELECT DISTINCT 
+    *,
+    dense_rank() OVER (PARTITION BY classified_metaData_classifiedId, cleaned_classified_prices_buy_price_amount 
+                        ORDER BY classified_metaData_changeDate DESC, partitionChangeDate DESC) as rankAll
 FROM (
-    SELECT DISTINCT *,
-        dense_rank() OVER (PARTITION BY classified_metaData_classifiedId,cleaned_classified_prices_buy_price_amount 
-                            ORDER BY classified_metaData_changeDate DESC, partitionChangeDate DESC) as rankAll
+    -- get ALL price changes WITHIN required month
+    SELECT *
     FROM (
-        -- get ALL price changes WITHIN required month
-        SELECT DISTINCT *
-        FROM (
-            SELECT DISTINCT
-                *,
-                dense_rank() OVER (PARTITION BY classified_metaData_classifiedId,cleaned_classified_prices_buy_price_amount 
-                                    ORDER BY classified_metaData_changeDate DESC, partitionChangeDate DESC) as rank
-            FROM BaseData2
-            WHERE partitionChangeDate >= '{first_day_current_month}'
-        )
-        WHERE rank = 1
-
-
-        UNION
-
-        -- get the LAST price BEFORE the required time period - equals first price for required time period
-        SELECT DISTINCT *
-        FROM (
-            SELECT DISTINCT *,
-                dense_rank() OVER (PARTITION BY classified_metaData_classifiedId 
-                                    ORDER BY classified_metaData_changeDate DESC, partitionChangeDate DESC) as rank
-            FROM BaseData2
-            WHERE partitionChangeDate < '{first_day_current_month}'
-        )
-        WHERE rank = 1
+        SELECT *,
+            dense_rank() OVER (PARTITION BY classified_metaData_classifiedId, cleaned_classified_prices_buy_price_amount 
+                                ORDER BY classified_metaData_changeDate DESC, partitionChangeDate DESC) as rank
+        FROM BaseData_final
+        WHERE partitionChangeDate >= '{first_day_current_month}'  
     )
+    WHERE rank = 1
+
+    UNION ALL
+
+    -- get LAST price BEFORE the required time period = price at the beginning of the required time period
+    SELECT *
+    FROM (
+        SELECT *,
+            dense_rank() OVER (PARTITION BY classified_metaData_classifiedId 
+                                ORDER BY classified_metaData_changeDate DESC, partitionChangeDate DESC) as rank
+        FROM BaseData_final
+        WHERE partitionChangeDate < '{first_day_current_month}'
+    )
+    WHERE rank = 1
 )
-WHERE rankAll = 1
-AND fraudLevelId <= 0
+WHERE
+    rankAll = 1
+    AND fraudLevelId <= 0
