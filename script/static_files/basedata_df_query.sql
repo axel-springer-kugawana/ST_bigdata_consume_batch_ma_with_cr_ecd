@@ -53,10 +53,10 @@ BaseData AS
                 AND (classified_features_furnished is NULL or
                     classified_features_furnished = 'NOT_APPLICABLE')
                 AND classified_estateType IN ('HOUSE', 'APARTMENT')
-                AND cleaned_classified_prices_buy_price_amount > 1
+                AND {price_amount_column} > 1
                 AND cleaned_classified_spaces_residential_livingSpace is not NULL 
                 AND cleaned_classified_spaces_residential_livingSpace BETWEEN 5 AND 500
-                AND cleaned_classified_prices_buy_price_amount / cleaned_classified_spaces_residential_livingSpace > 1.
+                AND {price_amount_column} / cleaned_classified_spaces_residential_livingSpace > 1.
                 AND cleaned_classified_structure_rooms_numberOfRooms <= 20
                 AND classified_management_isForInvestment IS NOT True
         ) oc
@@ -160,14 +160,14 @@ SELECT DISTINCT *
 FROM (
     SELECT 
         *,
-        dense_rank() OVER (PARTITION BY classified_metaData_classifiedId, cleaned_classified_prices_buy_price_amount 
+        dense_rank() OVER (PARTITION BY classified_metaData_classifiedId, {price_amount_column} 
                             ORDER BY classified_metaData_changeDate DESC, partitionChangeDate DESC) as rankAll
     FROM (
         -- get ALL price changes WITHIN required month
         SELECT *
         FROM (
             SELECT *,
-                dense_rank() OVER (PARTITION BY classified_metaData_classifiedId, cleaned_classified_prices_buy_price_amount 
+                dense_rank() OVER (PARTITION BY classified_metaData_classifiedId, {price_amount_column} 
                                     ORDER BY classified_metaData_changeDate DESC, partitionChangeDate DESC) as rank
             FROM BaseData_final
             WHERE partitionChangeDate >= '{first_day_current_month}'  
