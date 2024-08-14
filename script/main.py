@@ -355,8 +355,8 @@ customeractions_daily_actions_per_classified = glueContext.create_dynamic_frame.
 # GEOID, DATA_COUNTRY, DISTRIBUTION_TYPE, DATA_SOURCE
 country_values = [
     (108, 'GERMANY', 'BUY', 'SELL'),
-    (103, 'AUSTRIA', 'BUY', 'SELL'),
     (108, 'GERMANY', 'RENT', 'RENTAL'),
+    (103, 'AUSTRIA', 'BUY', 'SELL'),
     (103, 'AUSTRIA', 'RENT', 'RENTAL'),
 ]
 
@@ -387,6 +387,7 @@ for geoid, data_country, distribution_type, data_source in country_values:
         df=BaseData_df,
         geoid=geoid,
     )
+    BaseData_df.printSchema()
 
     if union_df is None:
         union_df = BaseData_df
