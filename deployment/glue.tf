@@ -104,6 +104,14 @@ resource "aws_s3_object" "upload-merge_delete_query" {
   depends_on = [aws_s3_bucket.bucket]
 }
 
+resource "aws_s3_object" "upload-log4j2-properties" {
+  bucket = "${var.bucket}-${var.env}"
+  key    = "scripts/log4j2.properties"
+  source = "../../script/log4j2.properties"
+  etag   = filemd5("../../script/log4j2.properties")
+}
+
+
 resource "aws_glue_job" "glue-job" {
   name = "${var.bucket}-${var.env}"
 
@@ -117,18 +125,19 @@ resource "aws_glue_job" "glue-job" {
 
   default_arguments = {
     "--extra-py-files"                   = "s3://${var.bucket}-${var.env}/scripts/helper.py"
-    "--extra-files"                      = "s3://${var.bucket}-${var.env}/scripts/stadtlandkreise.csv,s3://${var.bucket}-${var.env}/scripts/bundeslaender.csv,s3://${var.bucket}-${var.env}/scripts/attributes_all.txt,s3://${var.bucket}-${var.env}/scripts/classified_cols.txt,s3://${var.bucket}-${var.env}/scripts/basedata_df_query.sql,s3://${var.bucket}-${var.env}/scripts/merge_delete_query.sql"
+    "--extra-files"                      = "s3://${var.bucket}-${var.env}/scripts/stadtlandkreise.csv,s3://${var.bucket}-${var.env}/scripts/bundeslaender.csv,s3://${var.bucket}-${var.env}/scripts/attributes_all.txt,s3://${var.bucket}-${var.env}/scripts/classified_cols.txt,s3://${var.bucket}-${var.env}/scripts/basedata_df_query.sql,s3://${var.bucket}-${var.env}/scripts/merge_delete_query.sql,s3://${var.bucket}-${var.env}/scripts/log4j2.properties"
     "--conf"                             = "spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension --conf spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog --conf spark.sql.broadcastTimeout=36000"
-    "--executor-cores"                   = var.env == "live" ? floor(64 * 1.8) : floor(8 * 1.8) # The value should not exceed 2x the number of vCPUs on the worker type, which is 8 on G.1X, 16 on G.2X, 32 on G.4X and 64 on G.8X
+    "--executor-cores"                   =  floor(8 * 1.8) # The value should not exceed 2x the number of vCPUs on the worker type, which is 8 on G.1X, 16 on G.2X, 32 on G.4X and 64 on G.8X
     "--datalake-formats"                 = "delta"
-    "--enable-continuous-cloudwatch-log" = "false"
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-continuous-log-filter"     = "true"
     "--enable-metrics"                   = "true"
     "--enable-glue-datacatalog"          = "true"
     "--TempDir"                          = "s3://${var.bucket}-${var.env}/tmp"
   }
 
-  worker_type       = var.env == "live" ? "G.8X" : "G.1X"
-  number_of_workers = var.env == "live" ? 6 : 2
+  worker_type       = "G.1X"
+  number_of_workers = 2
   max_retries       = 0
 }
 
