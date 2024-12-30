@@ -76,7 +76,7 @@ resource "aws_iam_access_key" "ma_user_access_key" {
 }
 
 resource "aws_secretsmanager_secret" "ma_user_credentials" {
-  name = "ma-bigdata-user-credentials"
+  name = "ma-bigdata-user-credentials2"
 }
 
 resource "aws_secretsmanager_secret_version" "ma_user_credentials" {
