@@ -3,9 +3,7 @@ WITH BaseDataAll AS
     SELECT 
         classified_metaData_classifiedId,
         classified_metaData_changeDate
-    FROM BaseDataFirst
-    WHERE 
-        baseRank = 1
+    FROM BaseDataFirst 
 ),
 
 -- LAST/max record
