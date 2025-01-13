@@ -86,11 +86,29 @@ resource "aws_s3_object" "upload-classified_cols" {
   depends_on = [aws_s3_bucket.bucket]
 }
 
+resource "aws_s3_object" "upload-basedata_first_query" {
+  bucket = "${var.bucket}-${var.env}"
+  key    = "scripts/basedata_first_query.sql"
+  source = "../../script/static_files/basedata_first_query.sql"
+  etag   = filemd5("../../script/static_files/basedata_first_query.sql")
+
+  depends_on = [aws_s3_bucket.bucket]
+}
+
 resource "aws_s3_object" "upload-basedata_df_query" {
   bucket = "${var.bucket}-${var.env}"
   key    = "scripts/basedata_df_query.sql"
   source = "../../script/static_files/basedata_df_query.sql"
   etag   = filemd5("../../script/static_files/basedata_df_query.sql")
+
+  depends_on = [aws_s3_bucket.bucket]
+}
+
+resource "aws_s3_object" "upload-basedata_df_final_query" {
+  bucket = "${var.bucket}-${var.env}"
+  key    = "scripts/basedata_df_final_query.sql"
+  source = "../../script/static_files/basedata_df_final_query.sql"
+  etag   = filemd5("../../script/static_files/basedata_df_final_query.sql")
 
   depends_on = [aws_s3_bucket.bucket]
 }
