@@ -1,4 +1,5 @@
 from datetime import datetime
+from awsglue import DynamicFrame
 from dateutil.relativedelta import relativedelta
 from pyspark.sql.functions import col, struct
 import pyspark.sql.functions as F
@@ -65,6 +66,466 @@ class Helper:
         formatted_sql = sql_template.format(**kwargs)
 
         return formatted_sql
+
+    @staticmethod
+    # Construct the when clause dynamically
+    def add_column_from_mapping(df, mapping, column, otherwise):
+        # Construct the when clause dynamically
+        when_clause = None
+        for estate_type, sub_type_col in mapping.items():
+            condition = F.col("classified_estateType") == estate_type
+            if when_clause is None:
+                when_clause = F.when(
+                    condition & F.col(sub_type_col).isNotNull(), F.col(sub_type_col)
+                )
+            else:
+                when_clause = when_clause.when(
+                    condition & F.col(sub_type_col).isNotNull(), F.col(sub_type_col)
+                )
+            when_clause = when_clause.when(
+                condition & F.col(sub_type_col).isNull(), F.lit(estate_type)
+            )
+
+        # Add the otherwise clause
+        when_clause = when_clause.otherwise(F.lit(otherwise))
+        df = df.withColumn(column, when_clause)
+        return df
+
+    @staticmethod
+    def modifyDataJson(glueContext, df, distribution_type) -> DynamicFrame:
+        ret_df = df.toDF()
+        ret_df = Helper.add_column_from_mapping(
+            df=ret_df,
+            mapping=Helper.estate_type_mapping,
+            column="subTypes",
+            otherwise="NOT_APPLICABLE",
+        )
+
+        if distribution_type == "BUY":
+            ret_df = (
+                ret_df.withColumn(
+                    "prices_buy_price_amount",
+                    F.col("classified_prices_buy_price_amount"),
+                )
+                .withColumn(
+                    "prices_buy_price_currency", F.col("classified_prices_currency")
+                )
+                .withColumn(
+                    "prices_buy_serviceCharge_amount",
+                    F.when(
+                        F.col(
+                            "classified_prices_buy_operatingCosts_amount"
+                        ).isNotNull(),
+                        F.col("classified_prices_buy_operatingCosts_amount"),
+                    )
+                    .otherwise(0.00)
+                    .cast("float"),
+                )
+                .withColumn(
+                    "prices_buy_serviceCharge_currency",
+                    F.col("classified_prices_currency"),
+                )
+            )
+        else:  # RENT
+            ret_df = (
+                ret_df.withColumn(
+                    "prices_rent_baseRent_amount",
+                    F.col("classified_prices_rent_baseRent_amount"),
+                )
+                .withColumn(
+                    "prices_rent_baseRent_currency", F.col("classified_prices_currency")
+                )
+                .withColumn(
+                    "prices_rent_operatingCosts_amount",
+                    F.col("classified_prices_rent_operatingCosts_amount"),
+                )
+                .withColumn(
+                    "prices_rent_operatingCosts_currency",
+                    F.col("classified_prices_currency"),
+                )
+            )
+
+        # special columns
+        ret_df = (
+            ret_df.withColumn(
+                "spaces_residential_livingSpace",
+                F.when(
+                    (F.col("classified_spaces_residential_livingSpace").isNotNull())
+                    & (
+                        F.trim(F.col("classified_spaces_residential_livingSpace")) != ""
+                    ),
+                    F.col("classified_spaces_residential_livingSpace"),
+                )
+                .otherwise(0.0)
+                .cast("float"),
+            )
+            .withColumn(
+                "spaces_residential_plotSpace",
+                F.when(
+                    (F.col("classified_spaces_residential_plotSpace").isNotNull())
+                    & (F.trim(F.col("classified_spaces_residential_plotSpace")) != ""),
+                    F.col("classified_spaces_residential_plotSpace"),
+                )
+                .otherwise(0.0)
+                .cast("float"),
+            )
+            .withColumn(
+                "spaces_residential_floorNo",
+                F.when(
+                    F.col("classified_structure_building_floorNumber").isNotNull(),
+                    F.col("classified_structure_building_floorNumber"),
+                ).otherwise(0),
+            )
+            .withColumn(
+                "spaces_parking_garage",
+                F.when(
+                    F.col("classified_structure_parkingLots_garage").isNotNull(),
+                    F.col("classified_structure_parkingLots_garage"),
+                ).otherwise(0),
+            )
+            .withColumn(
+                "spaces_parking_carport",
+                F.when(
+                    F.col("classified_structure_parkingLots_carport").isNotNull(),
+                    F.col("classified_structure_parkingLots_carport"),
+                ).otherwise(0),
+            )
+            .withColumn(
+                "spaces_parking_undergroundGarage",
+                F.when(
+                    F.col("classified_structure_parkingLots_underground").isNotNull(),
+                    F.col("classified_structure_parkingLots_underground"),
+                ).otherwise(0),
+            )
+            .withColumn(
+                "spaces_parking_duplex",
+                F.when(
+                    F.col("classified_structure_parkingLots_duplex").isNotNull(),
+                    F.col("classified_structure_parkingLots_duplex"),
+                ).otherwise(0),
+            )
+            .withColumn(
+                "spaces_parking_carPark",
+                F.when(
+                    F.col("classified_structure_parkingLots_carPark").isNotNull(),
+                    F.col("classified_structure_parkingLots_carPark"),
+                ).otherwise(0),
+            )
+            .withColumn(
+                "spaces_parking_mixed",
+                (
+                    F.when(
+                        F.col("classified_structure_parkingLots_mixed").isNotNull(),
+                        F.col("classified_structure_parkingLots_mixed"),
+                    ).otherwise(0)
+                )
+                + (
+                    F.when(
+                        F.col("classified_structure_parkingLots_outside").isNotNull(),
+                        F.col("classified_structure_parkingLots_outside"),
+                    ).otherwise(0)
+                )
+                + (
+                    F.when(
+                        F.col(
+                            "classified_structure_parkingLots_streetParking"
+                        ).isNotNull(),
+                        F.col("classified_structure_parkingLots_streetParking"),
+                    ).otherwise(0)
+                )
+                + (
+                    F.when(
+                        F.col(
+                            "classified_structure_parkingLots_doubleGarage"
+                        ).isNotNull(),
+                        F.col("classified_structure_parkingLots_doubleGarage"),
+                    ).otherwise(0)
+                )
+                + (
+                    F.when(
+                        F.col(
+                            "classified_structure_parkingLots_garageArea"
+                        ).isNotNull(),
+                        F.col("classified_structure_parkingLots_garageArea"),
+                    ).otherwise(0)
+                )
+                + (
+                    F.when(
+                        F.col("classified_structure_parkingLots_boatDock").isNotNull(),
+                        F.col("classified_structure_parkingLots_boatDock"),
+                    ).otherwise(0)
+                ),
+            )
+            .withColumn(
+                "attributes_roomCount_numberOfRooms",
+                F.col("classified_structure_rooms_numberOfRooms"),
+            )
+            .withColumn(
+                "attributes_roomCount_numberOfTerraces",
+                F.when(
+                    F.col("classified_structure_rooms_numberOfTerraces").isNotNull(),
+                    F.col("classified_structure_rooms_numberOfTerraces").cast("int"),
+                ).otherwise(0),
+            )
+            .withColumn(
+                "attributes_roomCount_numberOfBalconies",
+                F.when(
+                    F.col("classified_structure_rooms_numberOfBalconies").isNotNull(),
+                    F.col("classified_structure_rooms_numberOfBalconies").cast("int"),
+                ).otherwise(0),
+            )
+            .withColumn(
+                "features_elevator_person",
+                F.when(
+                    F.col("classified_structure_building_elevator_person").isNotNull(),
+                    F.col("classified_structure_building_elevator_person"),
+                ).otherwise("NO"),
+            )
+            .withColumn(
+                "features_garden",
+                F.when(
+                    F.col("classified_features_garden").isNotNull(),
+                    F.col("classified_features_garden"),
+                ).otherwise("NO"),
+            )
+            .withColumn(
+                "features_bath_bathtub",
+                F.when(
+                    F.col("classified_structure_building_bath_bathtub").isNotNull(),
+                    F.col("classified_structure_building_bath_bathtub"),
+                ).otherwise("NO"),
+            )
+            .withColumn(
+                "features_bath_shower",
+                F.when(
+                    F.col("classified_structure_building_bath_shower").isNotNull(),
+                    F.col("classified_structure_building_bath_shower"),
+                ).otherwise("NO"),
+            )
+            .withColumn(
+                "features_bath_window",
+                F.when(
+                    F.col("classified_structure_building_bath_window").isNotNull(),
+                    F.col("classified_structure_building_bath_window"),
+                ).otherwise("NO"),
+            )
+            .withColumn(
+                "features_bath_guestToilet",
+                F.when(
+                    F.col("classified_structure_building_bath_guestToilet").isNotNull(),
+                    F.col("classified_structure_building_bath_guestToilet"),
+                ).otherwise("NO"),
+            )
+            .withColumn(
+                "features_bath_separateBathAndToilet",
+                F.when(
+                    F.col(
+                        "classified_structure_building_bath_separateBathAndToilet"
+                    ).isNotNull(),
+                    F.col("classified_structure_building_bath_separateBathAndToilet"),
+                ).otherwise("NO"),
+            )
+            .withColumn(
+                "features_kitchen_kitchenType",
+                F.when(
+                    F.col(
+                        "classified_structure_building_kitchen_kitchenType"
+                    ).isNotNull(),
+                    F.col("classified_structure_building_kitchen_kitchenType"),
+                ).otherwise("NONE"),
+            )
+            .withColumn(
+                "features_residential_loggia",
+                F.when(
+                    F.col("classified_features_residential_loggia").isNotNull(),
+                    F.col("classified_features_residential_loggia"),
+                ).otherwise("NO"),
+            )
+            .withColumn("features_residential_winterGarden", F.lit("NO"))
+            .withColumn("features_residential_rooftopTerrace", F.lit("NO"))
+            .withColumn(
+                "features_residential_chimney",
+                F.when(
+                    F.col("classified_features_residential_chimney").isNotNull(),
+                    F.col("classified_features_residential_chimney"),
+                ).otherwise("NO"),
+            )
+            .withColumn(
+                "features_furnished",
+                F.when(
+                    F.col("classified_features_furnished").isNotNull(),
+                    F.col("classified_features_furnished"),
+                ).otherwise("NOT_APPLICABLE"),
+            )
+            .withColumn(
+                "conditions_userDefined_immoWelt_research_ageState",
+                F.col("userDefined_immoWelt_research_ageState"),
+            )
+            .withColumn(
+                "conditions_userDefined_immoWelt_research_buildState",
+                F.col("userDefined_immoWelt_research_buildState"),
+            )
+            .withColumn(
+                "energy_energyType_heatMethod",
+                F.when(
+                    F.col("classified_energy_energyType_heatMethod").isNotNull(),
+                    F.col("classified_energy_energyType_heatMethod"),
+                ).otherwise("NOT_APPLICABLE"),
+            )
+            .withColumn(
+                "energy_energyType_heatForm_stove",
+                F.when(
+                    F.col("classified_energy_energyType_heatForm_stove").isNotNull(),
+                    F.col("classified_energy_energyType_heatForm_stove"),
+                ).otherwise(False),
+            )
+            .withColumn(
+                "energy_energyType_heatForm_floor",
+                F.when(
+                    F.col("classified_energy_energyType_heatForm_floor").isNotNull(),
+                    F.col("classified_energy_energyType_heatForm_floor"),
+                ).otherwise(False),
+            )
+            .withColumn(
+                "energy_energyType_energyGeneration",
+                F.when(
+                    F.col("classified_energy_energyType_energyGeneration").isNotNull(),
+                    F.col("classified_energy_energyType_energyGeneration"),
+                ).otherwise("NOT_APPLICABLE"),
+            )
+            .withColumn(
+                "energy_energyType_energySource",
+                F.when(
+                    F.col("classified_energy_energyType_energySource_coal").isNotNull(),
+                    F.lit("coal"),
+                )
+                .when(
+                    F.col("classified_energy_energyType_energySource_oil").isNotNull(),
+                    F.lit("oil"),
+                )
+                .when(
+                    F.col("classified_energy_energyType_energySource_gas").isNotNull(),
+                    F.lit("gas"),
+                )
+                .when(
+                    F.col(
+                        "classified_energy_energyType_energySource_electric"
+                    ).isNotNull(),
+                    F.lit("electric"),
+                )
+                .when(
+                    F.col(
+                        "classified_energy_energyType_energySource_solarHeat"
+                    ).isNotNull(),
+                    F.lit("solarHeat"),
+                )
+                .when(
+                    F.col(
+                        "classified_energy_energyType_energySource_geothermal"
+                    ).isNotNull(),
+                    F.lit("geothermal"),
+                )
+                .when(
+                    F.col("classified_energy_energyType_energySource_wood").isNotNull(),
+                    F.lit("wood"),
+                )
+                .when(
+                    F.col(
+                        "classified_energy_energyType_energySource_woodPellet"
+                    ).isNotNull(),
+                    F.lit("woodPellet"),
+                )
+                .otherwise(F.lit("NOT_APPLICABLE")),
+            )
+            .withColumn(
+                "userDefined_immoWelt_contact-requests",
+                F.when(
+                    F.col("userDefined_immoWelt_contact_requests").isNotNull(),
+                    F.col("userDefined_immoWelt_contact_requests"),
+                ).otherwise(0),
+            )
+            .withColumn(
+                "userDefined_immoWelt_iw-contact-requests",
+                F.when(
+                    F.col("userDefined_immoWelt_iw_contact_requests").isNotNull(),
+                    F.col("userDefined_immoWelt_iw_contact_requests"),
+                ).otherwise(0),
+            )
+            .withColumn(
+                "userDefined_immoWelt_in-contact-requests",
+                F.when(
+                    F.col("userDefined_immoWelt_in_contact_requests").isNotNull(),
+                    F.col("userDefined_immoWelt_in_contact_requests"),
+                ).otherwise(0),
+            )
+            .withColumn(
+                "userDefined_immoWelt_expose-visits",
+                F.when(
+                    F.col("userDefined_immoWelt_expose_visits").isNotNull(),
+                    F.col("userDefined_immoWelt_expose_visits"),
+                ).otherwise(0),
+            )
+            .withColumn(
+                "userDefined_immoWelt_iw-expose-visits",
+                F.when(
+                    F.col("userDefined_immoWelt_iw_expose_visits").isNotNull(),
+                    F.col("userDefined_immoWelt_iw_expose_visits"),
+                ).otherwise(0),
+            )
+            .withColumn(
+                "userDefined_immoWelt_in-expose-visits",
+                F.when(
+                    F.col("userDefined_immoWelt_in_expose_visits").isNotNull(),
+                    F.col("userDefined_immoWelt_in_expose_visits"),
+                ).otherwise(0),
+            )
+        )
+
+        ### ADDING MISSING ATTRIBUTES
+        for colname in GlobalVariables.cols_remove_classified:
+            ret_df = ret_df.withColumnRenamed(
+                f"classified_{colname}",
+                colname,
+            )
+
+        cols_to_keep = [
+            "userDefined_immoWelt_contact-requests",
+            "userDefined_immoWelt_iw-contact-requests",
+            "userDefined_immoWelt_in-contact-requests",
+            "userDefined_immoWelt_expose-visits",
+            "userDefined_immoWelt_iw-expose-visits",
+            "userDefined_immoWelt_in-expose-visits",
+        ]
+        cols_to_drop = [
+            c
+            for c in ret_df.columns
+            if c.startswith("classified_")
+            or (c.startswith("userDefined_") and c not in cols_to_keep)
+        ]
+        ret_df = ret_df.drop(*cols_to_drop)
+
+        # add debugging columns
+        ret_df = (
+            ret_df.withColumn("metaData_changeLog_timestamp", F.current_timestamp())
+            .withColumn("metaData_changeLog_system", F.lit("AwsGlueExportScript"))
+            .withColumn("metaData_changeLog_version", F.lit("1.1"))
+            .withColumn("metaData_changeLog_operation", F.lit("UPDATE"))
+            .withColumn("metaData_changeLog_note", F.lit("Exported to json file"))
+        )
+
+        select_col_list = Helper.nest_schema(ret_df.schema)
+        ret_df = ret_df.select(*select_col_list)
+        if "subTypes" in ret_df.columns:
+            ret_df = Helper.construct_MapType(
+                ret_df,
+                key_col="estateType",
+                value_col="subTypes",
+                new_col_name="subTypes",
+            )
+
+        ret_df = ret_df.coalesce(1)
+
+        return DynamicFrame.fromDF(ret_df, glueContext, "json")
 
 
 class GlobalVariables:
@@ -156,16 +617,31 @@ class Queries(Variables):
 
         return merge_delete_query
 
+    def get_BaseData_first_query(self) -> str:
+        BaseData_first_query = Helper.read_and_format_sql_query(
+            file_path="basedata_first_query.sql",
+            geoid=self.geoid,
+            distribution_type=self.distribution_type
+        )
+
+        return BaseData_first_query
+    
     def get_BaseData_df_query(self) -> str:
         BaseData_df_query = Helper.read_and_format_sql_query(
             file_path="basedata_df_query.sql",
-            attributes_all_string=self.attributes_all_string,
-            geoid=self.geoid,
-            distribution_type=self.distribution_type,
             attributes_all_cleaned_string=self.attributes_all_cleaned_string,
             price_amount_column=self.price_amount_column,
             first_day_current_month=GlobalVariables.first_day_current_month,
             first_day_next_month=GlobalVariables.first_day_next_month,
+        )
+
+        return BaseData_df_query
+    
+    def get_BaseData_final_df_query(self) -> str:
+        BaseData_df_query = Helper.read_and_format_sql_query(
+            file_path="basedata_df_final_query.sql",
+            price_amount_column=self.price_amount_column,
+            first_day_current_month=GlobalVariables.first_day_current_month,
         )
 
         return BaseData_df_query
