@@ -125,7 +125,7 @@ resource "aws_glue_job" "glue-job" {
 
   default_arguments = {
     "--extra-py-files"                   = "s3://${var.bucket}-${var.env}/scripts/helper.py"
-    "--extra-files"                      = "s3://${var.bucket}-${var.env}/scripts/stadtlandkreise.csv,s3://${var.bucket}-${var.env}/scripts/bundeslaender.csv,s3://${var.bucket}-${var.env}/scripts/attributes_all.txt,s3://${var.bucket}-${var.env}/scripts/classified_cols.txt,s3://${var.bucket}-${var.env}/scripts/basedata_df_query.sql,s3://${var.bucket}-${var.env}/scripts/merge_delete_query.sql,s3://${var.bucket}-${var.env}/scripts/log4j2.properties"
+    "--extra-files"                      = "s3://${var.bucket}-${var.env}/scripts/stadtlandkreise.csv,s3://${var.bucket}-${var.env}/scripts/bundeslaender.csv,s3://${var.bucket}-${var.env}/scripts/attributes_all.txt,s3://${var.bucket}-${var.env}/scripts/classified_cols.txt,s3://${var.bucket}-${var.env}/scripts/basedata_first_query.sql,s3://${var.bucket}-${var.env}/scripts/basedata_df_query.sql,s3://${var.bucket}-${var.env}/scripts/basedata_df_final_query.sql,s3://${var.bucket}-${var.env}/scripts/merge_delete_query.sql,s3://${var.bucket}-${var.env}/scripts/log4j2.properties"
     "--conf"                             = "spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension --conf spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog --conf spark.sql.broadcastTimeout=36000 --conf spark.sql.autoBroadcastJoinThreshold=4294967296"
     "--executor-cores"                   = var.env == "live" ? floor(64 * 1.8) : floor(8 * 1.8) # The value should not exceed 2x the number of vCPUs on the worker type, which is 8 on G.1X, 16 on G.2X, 32 on G.4X and 64 on G.8X
     "--datalake-formats"                 = "delta"
