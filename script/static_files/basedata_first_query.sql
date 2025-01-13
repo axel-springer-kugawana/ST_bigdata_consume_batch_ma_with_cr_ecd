@@ -1,4 +1,4 @@
-with first as (
+with final as (
     SELECT 
         *,
         dense_rank() OVER (PARTITION BY classified_metaData_classifiedId, to_date(classified_metaData_changeDate)
