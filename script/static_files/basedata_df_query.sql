@@ -12,7 +12,7 @@ FROM (
         {attributes_all_cleaned_string}
     FROM BaseDataFirst
     WHERE
-        AND (cleaned_classified_structure_building_floorNumber >= 0 or 
+        (cleaned_classified_structure_building_floorNumber >= 0 or 
             cleaned_classified_structure_building_floorNumber is NULL)
         AND (classified_management_rent_certificateOfEligibilityNeeded is null or 
             classified_management_rent_certificateOfEligibilityNeeded != 'YES')
