@@ -63,6 +63,7 @@ def update_delete(glueContext, df) -> DynamicFrame:
         mapping={"red_red_cleaned": df},
         transformation_ctx="merged_df",
     )
+    ret_df.toDF().explain()
     ret_df = ret_df.drop_fields(paths=["rank"])
     return ret_df
 
@@ -647,6 +648,7 @@ for geoid, data_country, distribution_type, data_source in country_values:
         },
         transformation_ctx="BaseData_df",
     )
+    BaseData_df.toDF().explain()
     print("Done fetching base data")
     BaseData_df = BaseData_df.drop_fields(paths=GlobalVariables.cols_to_drop_basedata)
     BaseData_df = modifyData(
