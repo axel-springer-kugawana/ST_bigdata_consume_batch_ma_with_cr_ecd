@@ -43,8 +43,6 @@ def sparkSqlQuery(glueContext, query, mapping, transformation_ctx) -> DynamicFra
     for alias, frame in mapping.items():
         frame.toDF().createOrReplaceTempView(alias)
     result = spark.sql(query)
-    print("Query Execution Plan:")
-    result.explain(mode="formatted")
     return DynamicFrame.fromDF(result, glueContext, transformation_ctx)
 
 
@@ -292,9 +290,6 @@ glueContext.purge_table(
     },
 )
 print("Done purging table")
-
-print("Final schema:")
-union_df.printSchema()
 
 AWSGlueDataCatalog_node1709799333156 = glueContext.write_dynamic_frame.from_catalog(
     frame=union_df,
