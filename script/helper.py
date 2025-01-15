@@ -621,11 +621,11 @@ class Queries(Variables):
         BaseData_first_query = Helper.read_and_format_sql_query(
             file_path="basedata_first_query.sql",
             geoid=self.geoid,
-            distribution_type=self.distribution_type
+            distribution_type=self.distribution_type,
         )
 
         return BaseData_first_query
-    
+
     def get_BaseData_df_query(self) -> str:
         BaseData_df_query = Helper.read_and_format_sql_query(
             file_path="basedata_df_query.sql",
@@ -636,7 +636,7 @@ class Queries(Variables):
         )
 
         return BaseData_df_query
-    
+
     def get_BaseData_final_df_query(self) -> str:
         BaseData_df_query = Helper.read_and_format_sql_query(
             file_path="basedata_df_final_query.sql",

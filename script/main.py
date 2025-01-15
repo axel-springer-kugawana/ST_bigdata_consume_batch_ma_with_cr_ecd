@@ -211,7 +211,8 @@ for geoid, data_country, distribution_type, data_source in country_values:
         transformation_ctx="BaseData_first",
     )
     BaseDataFirst = cacheDf(BaseDataFirst, glueContext, "basedata_first_cached")
-    
+    print("Done fetching base data first")
+
     BaseData = sparkSqlQuery(
         glueContext=glueContext,
         query=queries_obj.get_BaseData_df_query(),
@@ -225,6 +226,7 @@ for geoid, data_country, distribution_type, data_source in country_values:
         transformation_ctx="BaseData_df",
     )
     BaseData = cacheDf(BaseData, glueContext, "basedata_cached")
+    print("Done fetching base data cached")
 
     BaseData_final_df = sparkSqlQuery(
         glueContext=glueContext,
@@ -235,9 +237,11 @@ for geoid, data_country, distribution_type, data_source in country_values:
         },
         transformation_ctx="BaseData_final_df",
     )
+    print("Done fetching base data final")
 
-    print("Done fetching base data")
-    BaseData_final_df = BaseData_final_df.drop_fields(paths=GlobalVariables.cols_to_drop_basedata)
+    BaseData_final_df = BaseData_final_df.drop_fields(
+        paths=GlobalVariables.cols_to_drop_basedata
+    )
     BaseData_final_df = modifyData(
         glueContext=glueContext,
         df=BaseData_final_df,
