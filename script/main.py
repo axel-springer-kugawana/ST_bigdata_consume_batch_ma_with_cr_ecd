@@ -239,7 +239,6 @@ for geoid, data_country, distribution_type, data_source in country_values:
             "BaseData": BaseData,
         },
         transformation_ctx="BaseData_final_df",
-        plan=True,
     )
     print("Done fetching base data final")
 

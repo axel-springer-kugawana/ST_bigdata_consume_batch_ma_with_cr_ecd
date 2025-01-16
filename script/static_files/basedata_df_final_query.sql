@@ -1,14 +1,4 @@
-WITH BaseDataAll AS
-(
-    SELECT 
-        classified_metaData_classifiedId,
-        classified_metaData_changeDate
-    FROM BaseDataFirst 
-),
-
--- LAST/max record
--- with attribute filtering
-BaseDataMax AS
+WITH BaseDataMax AS
 (
     SELECT 
         classified_metaData_classifiedId,
@@ -24,7 +14,7 @@ BaseDataAllMax AS
     SELECT 
         classified_metaData_classifiedId,
         max(classified_metaData_changeDate) max_metaData_changeDate
-    FROM BaseDataAll
+    FROM BaseDataFirst
     WHERE classified_metaData_changeDate < '{first_day_current_month}'
     GROUP BY classified_metaData_classifiedId
 ),
@@ -50,12 +40,6 @@ BaseData_final AS
     )
 )
 
--- with BaseData do the following ...
--- get all price changes for the specified month
--- DO A UNION of 
--- 1. price changes WITION the required time period (PARTITION BY classifiedId, price)
--- 2. last price change BEFORE the required time period
--- ensure to keep only the LAST record of duplicates
 SELECT DISTINCT *
 FROM (
     SELECT 
@@ -91,3 +75,4 @@ FROM (
 WHERE
     rankAll = 1
     AND fraudLevelId <= 0
+
