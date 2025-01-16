@@ -39,10 +39,14 @@ def sparkUnion(glueContext, unionType, mapping, transformation_ctx) -> DynamicFr
     return DynamicFrame.fromDF(result, glueContext, transformation_ctx)
 
 
-def sparkSqlQuery(glueContext, query, mapping, transformation_ctx) -> DynamicFrame:
+def sparkSqlQuery(
+    glueContext, query, mapping, transformation_ctx, plan=False
+) -> DynamicFrame:
     for alias, frame in mapping.items():
         frame.toDF().createOrReplaceTempView(alias)
     result = spark.sql(query)
+    if plan:
+        result.explain(mode="formatted")
     return DynamicFrame.fromDF(result, glueContext, transformation_ctx)
 
 
@@ -151,7 +155,6 @@ job.init(args["JOB_NAME"], args)
 red_red_cleaned_draft = glueContext.create_dynamic_frame.from_catalog(
     database="kafka",
     table_name="red_red_cleaned",
-    # push_down_predicate=f"(partitioncreateddate>=to_date('{GlobalVariables.first_day_3_months_ago}') and partitioncreateddate<to_date('{GlobalVariables.first_day_next_month}'))",
     transformation_ctx="red_red_cleaned_draft",
 )
 red_red_cleaned = update_delete(glueContext=glueContext, df=red_red_cleaned_draft)
@@ -236,6 +239,7 @@ for geoid, data_country, distribution_type, data_source in country_values:
             "BaseData": BaseData,
         },
         transformation_ctx="BaseData_final_df",
+        plan=True,
     )
     print("Done fetching base data final")
 
