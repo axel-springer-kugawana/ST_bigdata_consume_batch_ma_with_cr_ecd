@@ -9,7 +9,7 @@ resource "aws_glue_catalog_table" "aws_glue_catalog_table" {
   }
 
   table_type = "EXTERNAL_TABLE"
-  
+
   partition_keys {
     name = "partitionmonth"
     type = "string"
@@ -152,6 +152,8 @@ resource "aws_glue_job" "glue-job" {
     "--enable-metrics"                   = "true"
     "--enable-glue-datacatalog"          = "true"
     "--TempDir"                          = "s3://${var.bucket}-${var.env}/tmp"
+    "--enable-spark-ui"                  = "true",
+    "--spark-event-logs-path"            = "s3://${var.bucket}-${var.env}/eventLogs"
   }
 
   worker_type       = var.env == "live" ? "G.8X" : "G.1X"
@@ -160,7 +162,7 @@ resource "aws_glue_job" "glue-job" {
 }
 
 resource "aws_glue_trigger" "glue_trigger" {
-  count = var.env == "live" ? 1 : 0
+  count    = var.env == "live" ? 1 : 0
   name     = "${var.bucket}-${var.env}-glue-trigger"
   schedule = "cron(0 1 * * ? *)"
   type     = "SCHEDULED"
