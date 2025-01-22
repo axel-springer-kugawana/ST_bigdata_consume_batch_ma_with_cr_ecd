@@ -153,7 +153,7 @@ resource "aws_glue_job" "glue-job" {
     "--enable-glue-datacatalog"          = "true"
     "--TempDir"                          = "s3://${var.bucket}-${var.env}/tmp"
     "--enable-spark-ui"                  = "true",
-    "--spark-event-logs-path"            = "s3://${var.bucket}-${var.env}/eventLogs"
+    "--spark-event-logs-path"            = "s3://${var.bucket}-${var.env}/eventLogs/"
   }
 
   worker_type       = var.env == "live" ? "G.8X" : "G.1X"
