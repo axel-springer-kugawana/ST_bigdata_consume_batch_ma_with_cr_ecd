@@ -1,14 +1,14 @@
 import sys
-from pyspark.sql import functions as F
-from awsglue.transforms import *
-from awsglue.utils import getResolvedOptions
-from pyspark.context import SparkContext
+
+import boto3
+from awsglue import DynamicFrame
 from awsglue.context import GlueContext
 from awsglue.job import Job
-from awsglue import DynamicFrame
-import boto3
-
-from helper import GlobalVariables, Queries, Helper
+from awsglue.transforms import *
+from awsglue.utils import getResolvedOptions
+from helper import GlobalVariables, Helper, Queries
+from pyspark.context import SparkContext
+from pyspark.sql import functions as F
 
 
 def parse_env_name() -> str:
@@ -159,6 +159,13 @@ red_red_cleaned_draft = glueContext.create_dynamic_frame.from_catalog(
 )
 red_red_cleaned = update_delete(glueContext=glueContext, df=red_red_cleaned_draft)
 
+red_red_text = glueContext.create_dynamic_frame.from_catalog(
+    database="kafka",
+    table_name="red_red_text",
+    push_down_predicate=f"(partitioncreateddate>=to_date('{GlobalVariables.first_day_3_months_ago}') and partitioncreateddate<to_date('{GlobalVariables.first_day_next_month}'))",
+    transformation_ctx="red_red_text",
+)
+
 red_vd_cleaned_spark = glueContext.create_data_frame.from_catalog(
     database="kafka",
     table_name="red_vd_cleaned",
@@ -210,6 +217,7 @@ for geoid, data_country, distribution_type, data_source in country_values:
         query=queries_obj.get_BaseData_first_query(),
         mapping={
             "red_red_cleaned": red_red_cleaned,
+            "red_red_text": red_red_text,
         },
         transformation_ctx="BaseData_first",
     )

@@ -9,7 +9,7 @@ WITH red_vd_cid as (
 
 oc as (
     SELECT 
-        {attributes_all_cleaned_string}
+        *
     FROM BaseDataFirst
     WHERE
         COALESCE(cleaned_classified_structure_building_floorNumber, 0) >= 0
