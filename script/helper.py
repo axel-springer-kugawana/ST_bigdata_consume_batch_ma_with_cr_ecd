@@ -1,8 +1,9 @@
 from datetime import datetime
+
+import pyspark.sql.functions as F
 from awsglue import DynamicFrame
 from dateutil.relativedelta import relativedelta
 from pyspark.sql.functions import col, struct
-import pyspark.sql.functions as F
 
 
 class Helper:
@@ -620,6 +621,7 @@ class Queries(Variables):
     def get_BaseData_first_query(self) -> str:
         BaseData_first_query = Helper.read_and_format_sql_query(
             file_path="basedata_first_query.sql",
+            attributes_all_cleaned_string=self.attributes_all_cleaned_string,
             geoid=self.geoid,
             distribution_type=self.distribution_type,
         )
@@ -629,7 +631,6 @@ class Queries(Variables):
     def get_BaseData_df_query(self) -> str:
         BaseData_df_query = Helper.read_and_format_sql_query(
             file_path="basedata_df_query.sql",
-            attributes_all_cleaned_string=self.attributes_all_cleaned_string,
             price_amount_column=self.price_amount_column,
             first_day_current_month=GlobalVariables.first_day_current_month,
             first_day_next_month=GlobalVariables.first_day_next_month,
