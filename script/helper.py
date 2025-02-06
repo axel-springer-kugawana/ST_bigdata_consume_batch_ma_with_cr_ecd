@@ -559,6 +559,7 @@ class GlobalVariables:
 
     cols_to_drop_json = [
         "id",
+        "baseRank",
         "partitionMonth",
         "partitionGeoid",
         "partitionChangeDate",
