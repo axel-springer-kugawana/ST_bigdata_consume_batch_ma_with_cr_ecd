@@ -50,11 +50,12 @@ resource "aws_s3_object" "upload-glue-helper" {
   depends_on = [aws_s3_bucket.bucket]
 }
 
+# upload data files
 resource "aws_s3_object" "upload-bundeslaender" {
   bucket = "${var.bucket}-${var.env}"
   key    = "scripts/bundeslaender.csv"
-  source = "../../script/static_files/bundeslaender.csv"
-  etag   = filemd5("../../script/static_files/bundeslaender.csv")
+  source = "../../script/static_files/data/bundeslaender.csv"
+  etag   = filemd5("../../script/static_files/data/bundeslaender.csv")
 
   depends_on = [aws_s3_bucket.bucket]
 }
@@ -62,62 +63,55 @@ resource "aws_s3_object" "upload-bundeslaender" {
 resource "aws_s3_object" "upload-stadtlandkreise" {
   bucket = "${var.bucket}-${var.env}"
   key    = "scripts/stadtlandkreise.csv"
-  source = "../../script/static_files/stadtlandkreise.csv"
-  etag   = filemd5("../../script/static_files/stadtlandkreise.csv")
+  source = "../../script/static_files/data/stadtlandkreise.csv"
+  etag   = filemd5("../../script/static_files/data/stadtlandkreise.csv")
 
   depends_on = [aws_s3_bucket.bucket]
 }
 
-resource "aws_s3_object" "upload-attributes_all" {
+# upload config file
+resource "aws_s3_object" "upload-config" {
   bucket = "${var.bucket}-${var.env}"
-  key    = "scripts/attributes_all.txt"
-  source = "../../script/static_files/attributes_all.txt"
-  etag   = filemd5("../../script/static_files/attributes_all.txt")
+  key    = "scripts/config.json"
+  source = "../../script/config.json"
+  etag   = filemd5("../../script/config.json")
 
   depends_on = [aws_s3_bucket.bucket]
 }
 
-resource "aws_s3_object" "upload-classified_cols" {
-  bucket = "${var.bucket}-${var.env}"
-  key    = "scripts/classified_cols.txt"
-  source = "../../script/static_files/classified_cols.txt"
-  etag   = filemd5("../../script/static_files/classified_cols.txt")
-
-  depends_on = [aws_s3_bucket.bucket]
-}
-
+# upload query files
 resource "aws_s3_object" "upload-basedata_first_query" {
   bucket = "${var.bucket}-${var.env}"
-  key    = "scripts/basedata_first_query.sql"
-  source = "../../script/static_files/basedata_first_query.sql"
-  etag   = filemd5("../../script/static_files/basedata_first_query.sql")
+  key    = "scripts/1-basedata_first_query.sql"
+  source = "../../script/static_files/queries/1-basedata_first_query.sql"
+  etag   = filemd5("../../script/static_files/queries/1-basedata_first_query.sql")
 
   depends_on = [aws_s3_bucket.bucket]
 }
 
 resource "aws_s3_object" "upload-basedata_df_query" {
   bucket = "${var.bucket}-${var.env}"
-  key    = "scripts/basedata_df_query.sql"
-  source = "../../script/static_files/basedata_df_query.sql"
-  etag   = filemd5("../../script/static_files/basedata_df_query.sql")
+  key    = "scripts/2-basedata_df_query.sql"
+  source = "../../script/static_files/queries/2-basedata_df_query.sql"
+  etag   = filemd5("../../script/static_files/queries/2-basedata_df_query.sql")
 
   depends_on = [aws_s3_bucket.bucket]
 }
 
 resource "aws_s3_object" "upload-basedata_df_final_query" {
   bucket = "${var.bucket}-${var.env}"
-  key    = "scripts/basedata_df_final_query.sql"
-  source = "../../script/static_files/basedata_df_final_query.sql"
-  etag   = filemd5("../../script/static_files/basedata_df_final_query.sql")
+  key    = "scripts/3-basedata_df_final_query.sql"
+  source = "../../script/static_files/queries/3-basedata_df_final_query.sql"
+  etag   = filemd5("../../script/static_files/queries/3-basedata_df_final_query.sql")
 
   depends_on = [aws_s3_bucket.bucket]
 }
 
 resource "aws_s3_object" "upload-merge_delete_query" {
   bucket = "${var.bucket}-${var.env}"
-  key    = "scripts/merge_delete_query.sql"
-  source = "../../script/static_files/merge_delete_query.sql"
-  etag   = filemd5("../../script/static_files/merge_delete_query.sql")
+  key    = "scripts/0-merge_delete_query.sql"
+  source = "../../script/static_files/queries/0-merge_delete_query.sql"
+  etag   = filemd5("../../script/static_files/queries/0-merge_delete_query.sql")
 
   depends_on = [aws_s3_bucket.bucket]
 }
@@ -125,8 +119,8 @@ resource "aws_s3_object" "upload-merge_delete_query" {
 resource "aws_s3_object" "upload-log4j2-properties" {
   bucket = "${var.bucket}-${var.env}"
   key    = "scripts/log4j2.properties"
-  source = "../../script/log4j2.properties"
-  etag   = filemd5("../../script/log4j2.properties")
+  source = "../../script/static_files/log4j2.properties"
+  etag   = filemd5("../../script/static_files/log4j2.properties")
 }
 
 
@@ -143,7 +137,8 @@ resource "aws_glue_job" "glue-job" {
 
   default_arguments = {
     "--extra-py-files"                   = "s3://${var.bucket}-${var.env}/scripts/helper.py"
-    "--extra-files"                      = "s3://${var.bucket}-${var.env}/scripts/stadtlandkreise.csv,s3://${var.bucket}-${var.env}/scripts/bundeslaender.csv,s3://${var.bucket}-${var.env}/scripts/attributes_all.txt,s3://${var.bucket}-${var.env}/scripts/classified_cols.txt,s3://${var.bucket}-${var.env}/scripts/basedata_first_query.sql,s3://${var.bucket}-${var.env}/scripts/basedata_df_query.sql,s3://${var.bucket}-${var.env}/scripts/basedata_df_final_query.sql,s3://${var.bucket}-${var.env}/scripts/merge_delete_query.sql,s3://${var.bucket}-${var.env}/scripts/log4j2.properties"
+    "--extra-files"                      = "s3://${var.bucket}-${var.env}/scripts/stadtlandkreise.csv,s3://${var.bucket}-${var.env}/scripts/bundeslaender.csv,s3://${var.bucket}-${var.env}/scripts/config,s3://${var.bucket}-${var.env}/scripts/1-basedata_first_query.sql,s3://${var.bucket}-${var.env}/scripts/2-basedata_df_query.sql,s3://${var.bucket}-${var.env}/scripts/3-basedata_df_final_query.sql,s3://${var.bucket}-${var.env}/scripts/0-merge_delete_query.sql,s3://${var.bucket}-${var.env}/scripts/log4j2.properties"
+    "--partition_date"                   = "yesterday"
     "--conf"                             = "spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension --conf spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog --conf spark.sql.broadcastTimeout=36000 --conf spark.sql.autoBroadcastJoinThreshold=4294967296"
     "--executor-cores"                   = var.env == "live" ? floor(64 * 1.8) : floor(8 * 1.8) # The value should not exceed 2x the number of vCPUs on the worker type, which is 8 on G.1X, 16 on G.2X, 32 on G.4X and 64 on G.8X
     "--datalake-formats"                 = "delta"

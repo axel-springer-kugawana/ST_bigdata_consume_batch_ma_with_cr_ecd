@@ -4,7 +4,7 @@ with deleted as (
     from red_red_cleaned
     where operation = 'Delete'
     and classified_metaData_classifiedId IS NULL
-    and partitionchangedate>=to_date('{first_day_3_months_ago}') 
+    and partitionchangedate>=to_date('{first_day_past}') 
     and partitionchangedate<to_date('{first_day_next_month}')
 ),
 
@@ -39,7 +39,7 @@ final_non_deleted as (
         *
     from red_red_cleaned
     where operation != 'Delete'
-    and partitionchangedate>=to_date('{first_day_3_months_ago}') 
+    and partitionchangedate>=to_date('{first_day_past}') 
     and partitionchangedate<to_date('{first_day_next_month}')
 ),
 
