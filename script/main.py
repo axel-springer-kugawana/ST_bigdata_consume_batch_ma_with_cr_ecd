@@ -1,17 +1,23 @@
+import json
 import sys
+from datetime import datetime, timedelta
 
 import boto3
-from awsglue import DynamicFrame
+from awsglue import DataFrame, DynamicFrame
 from awsglue.context import GlueContext
 from awsglue.job import Job
 from awsglue.transforms import *
 from awsglue.utils import getResolvedOptions
-from helper import GlobalVariables, Helper, Queries
+from dateutil.relativedelta import relativedelta
+from helper import Helper, Queries
 from pyspark.context import SparkContext
 from pyspark.sql import functions as F
 
 
 def parse_env_name() -> str:
+    """
+    Parse the environment name from the account alias
+    """
     client = boto3.client("iam")
 
     account_alliases = client.list_account_aliases()
@@ -20,17 +26,24 @@ def parse_env_name() -> str:
     return env_name
 
 
-ENV_NAME = parse_env_name()
-
-
-def cacheDf(df, glueContext, transformation_ctx) -> DynamicFrame:
+def cacheDf(
+    df: DynamicFrame, glueContext: GlueContext, transformation_ctx: str
+) -> DynamicFrame:
+    """
+    Cache the dataframe to optimize performance
+    """
     cached_df = df.toDF()
     cached_df = cached_df.cache()
 
     return DynamicFrame.fromDF(cached_df, glueContext, transformation_ctx)
 
 
-def sparkUnion(glueContext, unionType, mapping, transformation_ctx) -> DynamicFrame:
+def sparkUnion(
+    glueContext: GlueContext, unionType: str, mapping: dict, transformation_ctx: str
+) -> DynamicFrame:
+    """
+    Spark union operation
+    """
     for alias, frame in mapping.items():
         frame.toDF().createOrReplaceTempView(alias)
     result = spark.sql(
@@ -40,8 +53,15 @@ def sparkUnion(glueContext, unionType, mapping, transformation_ctx) -> DynamicFr
 
 
 def sparkSqlQuery(
-    glueContext, query, mapping, transformation_ctx, plan=False
+    glueContext: GlueContext,
+    query: str,
+    mapping: dict,
+    transformation_ctx: str,
+    plan: bool = False,
 ) -> DynamicFrame:
+    """
+    Spark SQL query operation
+    """
     for alias, frame in mapping.items():
         frame.toDF().createOrReplaceTempView(alias)
     result = spark.sql(query)
@@ -50,26 +70,33 @@ def sparkSqlQuery(
     return DynamicFrame.fromDF(result, glueContext, transformation_ctx)
 
 
-def update_delete(glueContext, df) -> DynamicFrame:
+def update_delete(glueContext: GlueContext, df: DynamicFrame) -> DynamicFrame:
+    """
+    Clean red_red deleted records and prepare it
+    """
     columns = df.toDF().columns
-    prefixes = ["classified_", "cleaned_", "cleanup", "extracted_", "grenzwert_"]
 
     # Use dictionary comprehension to create lists of columns based on prefixes
-    filtered_columns_wo_prefix = [
-        x for prefix in prefixes for x in columns if x.startswith(prefix)
-    ]
-    filtered_columns_str_wo_prefix = ",".join(filtered_columns_wo_prefix)
-
-    filtered_columns_with_prefix = [
-        "b." + x for prefix in prefixes for x in columns if x.startswith(prefix)
-    ]
-    filtered_columns_str_with_prefix = ",".join(filtered_columns_with_prefix)
+    filtered_columns_str_wo_prefix = ",".join(
+        x
+        for prefix in config["validPrefixValues"]
+        for x in columns
+        if x.startswith(prefix)
+    )
+    filtered_columns_str_with_prefix = ",".join(
+        "b." + x
+        for prefix in config["validPrefixValues"]
+        for x in columns
+        if x.startswith(prefix)
+    )
 
     ret_df = sparkSqlQuery(
         glueContext,
         query=Queries.get_merge_delete_query(
             extra_columns_wo_prefix=filtered_columns_str_wo_prefix,
             extra_columns_with_prefix=filtered_columns_str_with_prefix,
+            first_day_past=first_day_past,
+            first_day_next_month=first_day_next_month,
         ),
         mapping={"red_red_cleaned": df},
         transformation_ctx="merged_df",
@@ -79,10 +106,44 @@ def update_delete(glueContext, df) -> DynamicFrame:
     return cacheDf(ret_df, glueContext, "cached_update_delete")
 
 
-def modifyData(glueContext, df, geoid) -> DynamicFrame:
+def join_csv_data(df: DataFrame) -> DataFrame:
+    bundeslaender_df = spark.read.csv(
+        "bundeslaender.csv", header=True, inferSchema="true"
+    )
+    stadtlandkreise_df = spark.read.csv(
+        "stadtlandkreise.csv", header=True, inferSchema="true"
+    )
+
+    ret_df = (
+        df.join(
+            bundeslaender_df,
+            F.substring(df.classified_geo_countrySpecific_de_iwtLegacyGeoID, 1, 5)
+            == bundeslaender_df.geoid,
+            how="left",
+        )
+        .drop("geoid")
+        .join(
+            stadtlandkreise_df,
+            F.substring(df.classified_geo_countrySpecific_de_iwtLegacyGeoID, 1, 8)
+            == stadtlandkreise_df.geoid,
+            how="left",
+        )
+        .drop("geoid", "stadtkreis")
+        .withColumnRenamed("bundesland", "geo_state")
+        .withColumnRenamed("landkreis", "geo_userDefined_immoWelt_county")
+    )
+    return ret_df
+
+
+def modify_data(
+    glueContext: GlueContext, df: DynamicFrame, geoid: int, partition_month: str
+) -> DynamicFrame:
+    """
+    Custom transformation for the data
+    """
     ret_df = df.toDF()
 
-    # clean values
+    # Clean the columns
     ret_df = ret_df.withColumn(
         "cleaned_classified_structure_rooms_numberofrooms",
         F.round(F.col("cleaned_classified_structure_rooms_numberofrooms")).cast("int"),
@@ -90,68 +151,82 @@ def modifyData(glueContext, df, geoid) -> DynamicFrame:
         "classified_geo_city",
         F.regexp_replace(F.col("classified_geo_city"), "\\\\\\\\", ""),
     )
-    # rename columns
+
+    # Remove the prefix from the column names
     cols_to_rename = [c for c in ret_df.columns if c.startswith("cleaned_")]
     for old_name in cols_to_rename:
         new_name = old_name.replace("cleaned_", "")
         ret_df = ret_df.withColumnRenamed(old_name, new_name)
 
     if geoid == 108:
-        bundeslaender_df = spark.read.csv(
-            "bundeslaender.csv", header=True, inferSchema="true"
-        )
-        stadtlandkreise_df = spark.read.csv(
-            "stadtlandkreise.csv", header=True, inferSchema="true"
-        )
-
-        ret_df = (
-            ret_df.join(
-                bundeslaender_df,
-                F.substring(
-                    ret_df.classified_geo_countrySpecific_de_iwtLegacyGeoID, 1, 5
-                )
-                == bundeslaender_df.geoid,
-                how="left",
-            )
-            .drop("geoid")
-            .join(
-                stadtlandkreise_df,
-                F.substring(
-                    ret_df.classified_geo_countrySpecific_de_iwtLegacyGeoID, 1, 8
-                )
-                == stadtlandkreise_df.geoid,
-                how="left",
-            )
-            .drop("geoid", "stadtkreis")
-            .withColumnRenamed("bundesland", "geo_state")
-            .withColumnRenamed("landkreis", "geo_userDefined_immoWelt_county")
-        )
+        ret_df = join_csv_data(ret_df)
     else:
         ret_df = ret_df.withColumn("geo_state", F.lit(None))
         ret_df = ret_df.withColumn("geo_userDefined_immoWelt_county", F.lit(None))
 
-    ret_df = ret_df.drop(
-        "geoid",
-        "classified_geo_userDefined_immoWelt_geoid",
-        "classified_geo_countrySpecific_de_iwtLegacyGeoID",
-    )
+    ret_df = ret_df.drop(*config["geoDropColumns"])
 
     # add additional columns
     ret_df = ret_df.withColumn("partitionGeoid", F.lit(geoid)).withColumn(
-        "partitionMonth", F.lit(GlobalVariables.partition_month)
+        "partitionMonth", F.lit(partition_month)
     )
 
     return DynamicFrame.fromDF(ret_df, glueContext, "attributes")
 
 
-args = getResolvedOptions(sys.argv, ["JOB_NAME"])
+def set_date_values(
+    partition_date: datetime.date, days_ago: int
+) -> tuple[str, str, str, str]:
+    """
+    Set date values for the queries
+    """
+    first_day_current_month = partition_date.replace(day=1).strftime("%Y-%m-%d")
+    first_day_next_month = (
+        (partition_date.replace(day=1) + relativedelta(months=+1))
+        .replace(day=1)
+        .strftime("%Y-%m-%d")
+    )
+    first_day_past = (
+        partition_date.replace(day=1) + relativedelta(days=-days_ago)
+    ).strftime("%Y-%m-%d")
+    partition_month = partition_date.strftime("%Y-%m")
+
+    return (
+        first_day_current_month,
+        first_day_next_month,
+        first_day_past,
+        partition_month,
+    )
+
+
+# load arguments
+args = getResolvedOptions(sys.argv, ["JOB_NAME", "partition_date"])
 sc = SparkContext()
 glueContext = GlueContext(sc)
 spark = glueContext.spark_session
 job = Job(glueContext)
 job.init(args["JOB_NAME"], args)
 
-########## get base tables from data catalog
+ENV_NAME = parse_env_name()
+
+# load config
+with open("config.json") as f:
+    config = json.load(f)
+
+if args["partition_date"] == "yesterday":
+    partition_date = datetime.now() - timedelta(days=1)
+else:
+    partition_date = args["partition_date"].strptime("%Y-%m-%d")
+
+# set date values
+(
+    first_day_current_month,
+    first_day_next_month,
+    first_day_past,
+    partition_month,
+) = set_date_values(partition_date=partition_date, days_ago=7)
+
+# getting base tables from data catalog
 red_red_cleaned_draft = glueContext.create_dynamic_frame.from_catalog(
     database="kafka",
     table_name="red_red_cleaned",
@@ -162,7 +237,7 @@ red_red_cleaned = update_delete(glueContext=glueContext, df=red_red_cleaned_draf
 red_red_text = glueContext.create_dynamic_frame.from_catalog(
     database="kafka",
     table_name="red_red_text",
-    push_down_predicate=f"(partitioncreateddate>=to_date('{GlobalVariables.first_day_3_months_ago}') and partitioncreateddate<to_date('{GlobalVariables.first_day_next_month}'))",
+    push_down_predicate=f"(partitioncreateddate>=to_date('{first_day_past}') and partitioncreateddate<to_date('{first_day_next_month}'))",
     transformation_ctx="red_red_text",
 )
 
@@ -178,39 +253,37 @@ red_vd_cleaned = DynamicFrame.fromDF(
 red_ecd = glueContext.create_dynamic_frame.from_catalog(
     database="kafka",
     table_name="red_ecd_raw",
-    push_down_predicate=f"(partitioncreateddate>=to_date('{GlobalVariables.first_day_3_months_ago}') and partitioncreateddate<to_date('{GlobalVariables.first_day_next_month}'))",
+    push_down_predicate=f"(partitioncreateddate>=to_date('{first_day_past}') and partitioncreateddate<to_date('{first_day_next_month}'))",
     transformation_ctx="red_ecd",
 )
 
 contactrequests_daily_cr_per_classified = glueContext.create_dynamic_frame.from_catalog(
     database="kinesis",
     table_name="contactrequests_daily_cr_per_classified",
-    push_down_predicate=f"(partitioncreateddate>=to_date('{GlobalVariables.first_day_current_month}') and partitioncreateddate<to_date('{GlobalVariables.first_day_next_month}'))",
+    push_down_predicate=f"(partitioncreateddate>=to_date('{first_day_current_month}') and partitioncreateddate<to_date('{first_day_next_month}'))",
     transformation_ctx="contactrequests_daily_cr_per_classified",
 )
 
 customeractions_daily_actions_per_classified = glueContext.create_dynamic_frame.from_catalog(
     database="kinesis",
     table_name="customeractions_daily_actions_per_classified",
-    push_down_predicate=f"(partitioncreateddate>=to_date('{GlobalVariables.first_day_current_month}') and partitioncreateddate<to_date('{GlobalVariables.first_day_next_month}'))",
+    push_down_predicate=f"(partitioncreateddate>=to_date('{first_day_current_month}') and partitioncreateddate<to_date('{first_day_next_month}'))",
     transformation_ctx="customeractions_daily_actions_per_classified",
 )
-##########
-
-# MAIN
-
-# GEOID, DATA_COUNTRY, DISTRIBUTION_TYPE, DATA_SOURCE
-country_values = [
-    (108, "GERMANY", "BUY", "SELL"),
-    (108, "GERMANY", "RENT", "RENTAL"),
-    (103, "AUSTRIA", "BUY", "SELL"),
-    (103, "AUSTRIA", "RENT", "RENTAL"),
-]
+# end of getting base tables
 
 union_df = None
-for geoid, data_country, distribution_type, data_source in country_values:
-    print(f"Getting data for: {geoid, data_country, distribution_type, data_source}")
-    queries_obj = Queries(distribution_type=distribution_type, geoid=geoid)
+# loop over possible values
+for row in config["countryValues"]:
+    geoid = row["geoid"]
+    country_name = row["country_name"]
+    distribution_type = row["distribution_type"]
+    data_source = row["data_source"]
+    print(f"Getting data for: {geoid, country_name, distribution_type, data_source}")
+
+    queries_obj = Queries(
+        distribution_type, geoid, first_day_current_month, first_day_next_month
+    )
 
     BaseDataFirst = sparkSqlQuery(
         glueContext=glueContext,
@@ -251,12 +324,13 @@ for geoid, data_country, distribution_type, data_source in country_values:
     print("Done fetching base data final")
 
     BaseData_final_df = BaseData_final_df.drop_fields(
-        paths=GlobalVariables.cols_to_drop_basedata
+        paths=config["colsToDropBaseData"]
     )
-    BaseData_final_df = modifyData(
+    BaseData_final_df = modify_data(
         glueContext=glueContext,
         df=BaseData_final_df,
         geoid=geoid,
+        partition_month=partition_month,
     )
 
     if union_df is None:
@@ -271,12 +345,12 @@ for geoid, data_country, distribution_type, data_source in country_values:
 
     print("Union df done")
 
-    csv_df = BaseData_final_df.drop_fields(paths=GlobalVariables.cols_to_drop_json)
-    json_df = Helper.modifyDataJson(
+    csv_df = BaseData_final_df.drop_fields(paths=config["colsToDropJson"])
+    json_df = Helper.modify_dataJson(
         glueContext=glueContext, df=csv_df, distribution_type=distribution_type
     )
 
-    s3_path_json = f"s3://consume-batch-ma-with-cr-ecd-{ENV_NAME}/data/{data_country.lower()}/{distribution_type.lower()}/json/partitioncreateddate={GlobalVariables.today}"
+    s3_path_json = f"s3://consume-batch-ma-with-cr-ecd-{ENV_NAME}/data/{country_name.lower()}/{distribution_type.lower()}/json/partitioncreateddate={partition_date}"
     AmazonS3_node1714127201181 = glueContext.write_dynamic_frame.from_options(
         frame=json_df,
         connection_type="s3",
@@ -285,7 +359,7 @@ for geoid, data_country, distribution_type, data_source in country_values:
         transformation_ctx="AmazonS3_node1714127201181",
     )
 
-    s3_path_csv = f"s3://consume-batch-ma-with-cr-ecd-{ENV_NAME}/data/{data_country.lower()}/{distribution_type.lower()}/csv/partitioncreateddate={GlobalVariables.today}"
+    s3_path_csv = f"s3://consume-batch-ma-with-cr-ecd-{ENV_NAME}/data/{country_name.lower()}/{distribution_type.lower()}/csv/partitioncreateddate={partition_date}"
     AmazonS3_node1714127201182 = glueContext.write_dynamic_frame.from_options(
         frame=csv_df.coalesce(1),
         connection_type="s3",
@@ -300,7 +374,7 @@ glueContext.purge_table(
     database="kafka",
     table_name="offers_ma_geo",
     options={
-        "partitionPredicate": f"(partitionmonth == '{GlobalVariables.partition_month}')",
+        "partitionPredicate": f"(partitionmonth == '{partition_month}')",
         "retentionPeriod": 1,
     },
 )
