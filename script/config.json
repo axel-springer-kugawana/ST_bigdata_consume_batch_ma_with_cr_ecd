@@ -14,10 +14,9 @@
         "partitionMonth",
         "partitionGeoid",
         "partitionChangeDate",
-        "cleanupdataproblems",
-        "fraudLevelId"
+        "cleanupdataproblems"
     ],
-    "coolsToKeep": [
+    "colsToKeep": [
         "userDefined_immoWelt_contact-requests",
         "userDefined_immoWelt_iw-contact-requests",
         "userDefined_immoWelt_in-contact-requests",

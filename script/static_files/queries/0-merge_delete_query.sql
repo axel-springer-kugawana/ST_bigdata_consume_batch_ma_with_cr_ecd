@@ -17,7 +17,7 @@ non_deleted as (
 ),
 
 joined as (
-    select 
+    select
         a.id, a.partitionChangeDate, a.changeDate, a.globalObjectKey, a.operation, b.changeDate as b_changeDate, {extra_columns_with_prefix},
         row_number() OVER (PARTITION BY a.globalObjectKey, a.changeDate ORDER BY b.changeDate DESC) as rank
     from deleted a

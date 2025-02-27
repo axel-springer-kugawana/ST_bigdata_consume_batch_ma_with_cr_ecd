@@ -7,7 +7,6 @@ WITH BaseDataMax AS
     GROUP BY classified_metaData_classifiedId
 ),
 
--- LAST/max record before required month (ma_date_1)
 -- without attribute filtering
 BaseDataAllMax AS
 (
@@ -38,41 +37,37 @@ BaseData_final AS
         SELECT classified_metaData_classifiedId
         FROM BaseDataInvalid
     )
-)
+    -- moved from final query to reduce the number of records
+    AND fraudLevelId <= 0
+),
 
-SELECT DISTINCT *
-FROM (
+-- prepare final output
+PriceChanges AS (
+    -- Get all price changes within the required month
     SELECT 
         *,
-        dense_rank() OVER (PARTITION BY classified_metaData_classifiedId, {price_amount_column} 
-                            ORDER BY classified_metaData_changeDate DESC, partitionChangeDate DESC) as rankAll
-    FROM (
-        -- get ALL price changes WITHIN required month
-        SELECT *
-        FROM (
-            SELECT *,
-                dense_rank() OVER (PARTITION BY classified_metaData_classifiedId, {price_amount_column} 
-                                    ORDER BY classified_metaData_changeDate DESC, partitionChangeDate DESC) as rank
-            FROM BaseData_final
-            WHERE partitionChangeDate >= '{first_day_current_month}'  
-        )
-        WHERE rank = 1
-
-        UNION ALL
-
-        -- get LAST price BEFORE the required time period = price at the beginning of the required time period
-        SELECT *
-        FROM (
-            SELECT *,
-                dense_rank() OVER (PARTITION BY classified_metaData_classifiedId 
-                                    ORDER BY classified_metaData_changeDate DESC, partitionChangeDate DESC) as rank
-            FROM BaseData_final
-            WHERE partitionChangeDate < '{first_day_current_month}'
-        )
-        WHERE rank = 1
-    )
+        ROW_NUMBER() OVER (
+            PARTITION BY classified_metaData_classifiedId, {price_amount_column} 
+            ORDER BY classified_metaData_changeDate DESC, partitionChangeDate DESC
+        ) AS row_num
+    FROM BaseData_final
+    WHERE partitionChangeDate >= '{first_day_current_month}'
+),
+PreviousPrice AS (
+    -- Get the last price before the required time period
+    SELECT 
+        *,
+        ROW_NUMBER() OVER (
+            PARTITION BY classified_metaData_classifiedId 
+            ORDER BY classified_metaData_changeDate DESC, partitionChangeDate DESC
+        ) AS row_num
+    FROM BaseData_final
+    WHERE partitionChangeDate < '{first_day_current_month}'
 )
-WHERE
-    rankAll = 1
-    AND fraudLevelId <= 0
+SELECT *
+FROM (
+    SELECT * FROM PriceChanges WHERE row_num = 1
+    UNION ALL
+    SELECT * FROM PreviousPrice WHERE row_num = 1
+) AS CombinedResults
 

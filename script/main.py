@@ -1,9 +1,10 @@
 import json
+import logging
 import sys
 from datetime import datetime, timedelta
 
 import boto3
-from awsglue import DataFrame, DynamicFrame
+from awsglue import DynamicFrame
 from awsglue.context import GlueContext
 from awsglue.job import Job
 from awsglue.transforms import *
@@ -11,6 +12,7 @@ from awsglue.utils import getResolvedOptions
 from dateutil.relativedelta import relativedelta
 from helper import Helper, Queries
 from pyspark.context import SparkContext
+from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
 
@@ -203,9 +205,16 @@ def set_date_values(
 args = getResolvedOptions(sys.argv, ["JOB_NAME", "partition_date"])
 sc = SparkContext()
 glueContext = GlueContext(sc)
+
 spark = glueContext.spark_session
 job = Job(glueContext)
 job.init(args["JOB_NAME"], args)
+
+# set logger
+logging.basicConfig(
+    level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 ENV_NAME = parse_env_name()
 
@@ -214,7 +223,7 @@ with open("config.json") as f:
     config = json.load(f)
 
 if args["partition_date"] == "yesterday":
-    partition_date = datetime.now() - timedelta(days=1)
+    partition_date = (datetime.now() - timedelta(days=1)).date()
 else:
     partition_date = args["partition_date"].strptime("%Y-%m-%d")
 
@@ -279,7 +288,9 @@ for row in config["countryValues"]:
     country_name = row["country_name"]
     distribution_type = row["distribution_type"]
     data_source = row["data_source"]
-    print(f"Getting data for: {geoid, country_name, distribution_type, data_source}")
+    logger.error(
+        f"DEBUG: Getting data for: {geoid, country_name, distribution_type, data_source}"
+    )
 
     queries_obj = Queries(
         distribution_type, geoid, first_day_current_month, first_day_next_month
@@ -295,7 +306,7 @@ for row in config["countryValues"]:
         transformation_ctx="BaseData_first",
     )
     BaseDataFirst = cacheDf(BaseDataFirst, glueContext, "basedata_first_cached")
-    print("Done fetching base data first")
+    logger.error("DEBUG: Done fetching base data first")
 
     BaseData = sparkSqlQuery(
         glueContext=glueContext,
@@ -310,7 +321,7 @@ for row in config["countryValues"]:
         transformation_ctx="BaseData_df",
     )
     BaseData = cacheDf(BaseData, glueContext, "basedata_cached")
-    print("Done fetching base data cached")
+    logger.error("DEBUG: Done fetching base data cached")
 
     BaseData_final_df = sparkSqlQuery(
         glueContext=glueContext,
@@ -321,7 +332,7 @@ for row in config["countryValues"]:
         },
         transformation_ctx="BaseData_final_df",
     )
-    print("Done fetching base data final")
+    logger.error("DEBUG: Done fetching base data final")
 
     BaseData_final_df = BaseData_final_df.drop_fields(
         paths=config["colsToDropBaseData"]
@@ -343,10 +354,10 @@ for row in config["countryValues"]:
             transformation_ctx="Union_node",
         )
 
-    print("Union df done")
+    logger.error("DEBUG: Union df done")
 
     csv_df = BaseData_final_df.drop_fields(paths=config["colsToDropJson"])
-    json_df = Helper.modify_dataJson(
+    json_df = Helper.modify_data_json(
         glueContext=glueContext, df=csv_df, distribution_type=distribution_type
     )
 
@@ -367,7 +378,7 @@ for row in config["countryValues"]:
         connection_options={"compression": "gzip", "path": s3_path_csv},
         transformation_ctx="AmazonS3_node1714127201181",
     )
-    print("Done with json")
+    logger.error("DEBUG: Done with json")
 
 # delete insert instead of replacewhere
 glueContext.purge_table(
@@ -378,7 +389,7 @@ glueContext.purge_table(
         "retentionPeriod": 1,
     },
 )
-print("Done purging table")
+logger.error("DEBUG: Done purging table")
 
 AWSGlueDataCatalog_node1709799333156 = glueContext.write_dynamic_frame.from_catalog(
     frame=union_df,
@@ -391,6 +402,6 @@ AWSGlueDataCatalog_node1709799333156 = glueContext.write_dynamic_frame.from_cata
     },
     transformation_ctx="AWSGlueDataCatalog_node1709799333156",
 )
-print("Done writing to table")
+logger.error("DEBUG: Done writing to table")
 
 job.commit()

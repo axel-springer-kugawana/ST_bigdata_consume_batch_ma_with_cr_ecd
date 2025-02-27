@@ -188,7 +188,7 @@ class Helper:
 
 class Variables:
 
-    def __init__(self, distribution_type: str, config: dict) -> None:
+    def __init__(self, distribution_type: str) -> None:
         if distribution_type == "BUY":
             self.price_amount_column = "cleaned_classified_prices_buy_price_amount"
             self.operating_cost_column = (
