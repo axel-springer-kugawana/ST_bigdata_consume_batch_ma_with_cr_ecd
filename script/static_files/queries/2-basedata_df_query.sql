@@ -4,7 +4,6 @@ WITH red_vd_cid as (
     WHERE
         aktivbis >= to_date('{first_day_current_month}')
         AND aktivab < to_date('{first_day_next_month}')
-        AND classifiedId like '%'
 ),
 
 oc as (

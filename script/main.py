@@ -108,7 +108,7 @@ def update_delete(glueContext: GlueContext, df: DynamicFrame) -> DynamicFrame:
     return cacheDf(ret_df, glueContext, "cached_update_delete")
 
 
-def join_csv_data(df: DataFrame) -> DataFrame:
+def join_csv_static_data(df: DataFrame) -> DataFrame:
     bundeslaender_df = spark.read.csv(
         "bundeslaender.csv", header=True, inferSchema="true"
     )
@@ -118,14 +118,14 @@ def join_csv_data(df: DataFrame) -> DataFrame:
 
     ret_df = (
         df.join(
-            bundeslaender_df,
+            F.broadcast(bundeslaender_df),
             F.substring(df.classified_geo_countrySpecific_de_iwtLegacyGeoID, 1, 5)
             == bundeslaender_df.geoid,
             how="left",
         )
         .drop("geoid")
         .join(
-            stadtlandkreise_df,
+            F.broadcast(stadtlandkreise_df),
             F.substring(df.classified_geo_countrySpecific_de_iwtLegacyGeoID, 1, 8)
             == stadtlandkreise_df.geoid,
             how="left",
@@ -161,7 +161,7 @@ def modify_data(
         ret_df = ret_df.withColumnRenamed(old_name, new_name)
 
     if geoid == 108:
-        ret_df = join_csv_data(ret_df)
+        ret_df = join_csv_static_data(ret_df)
     else:
         ret_df = ret_df.withColumn("geo_state", F.lit(None))
         ret_df = ret_df.withColumn("geo_userDefined_immoWelt_county", F.lit(None))
