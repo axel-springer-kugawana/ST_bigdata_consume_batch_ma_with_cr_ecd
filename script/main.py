@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 import sys
 from datetime import datetime, timedelta
 
@@ -75,6 +76,7 @@ def sparkSqlQuery(
 def update_delete(glueContext: GlueContext, df: DynamicFrame) -> DynamicFrame:
     """
     Clean red_red deleted records and prepare it
+    "cleaned_classified_distributionType IN ('RENT', 'BUY') AND (classified_geo_countrySpecific_de_iwtLegacyGeoID LIKE '108%' OR classified_geo_countrySpecific_de_iwtLegacyGeoID LIKE '103%')",
     """
     columns = df.toDF().columns
 
@@ -92,6 +94,18 @@ def update_delete(glueContext: GlueContext, df: DynamicFrame) -> DynamicFrame:
         if x.startswith(prefix)
     )
 
+    df_filtered = df.filter(
+        f=lambda x: (
+            x["cleaned_classified_distributiontype"] in ["RENT", "BUY"]
+            and (
+                x["classified_geo_countryspecific_de_iwtlegacygeoid"].startswith("103")
+                or x["classified_geo_countryspecific_de_iwtlegacygeoid"].startswith(
+                    "108"
+                )
+            )
+        )
+    )
+
     ret_df = sparkSqlQuery(
         glueContext,
         query=Queries.get_merge_delete_query(
@@ -100,7 +114,7 @@ def update_delete(glueContext: GlueContext, df: DynamicFrame) -> DynamicFrame:
             first_day_past=first_day_past,
             first_day_next_month=first_day_next_month,
         ),
-        mapping={"red_red_cleaned": df},
+        mapping={"red_red_cleaned": df_filtered},
         transformation_ctx="merged_df",
     )
     ret_df = ret_df.drop_fields(paths=["rank"])
@@ -238,16 +252,14 @@ else:
 # getting base tables from data catalog
 # NumPartitions = numSlotsPerExecutor * numExecutors
 # (10-1) * 16 = 144
-additional_options = {"hashfield": "partitioncreateddate", "hashpartitions": "144"}
 red_red_cleaned_draft = glueContext.create_dynamic_frame.from_catalog(
     database="kafka",
     table_name="red_red_cleaned",
     transformation_ctx="red_red_cleaned_draft",
 )
 red_red_cleaned = update_delete(glueContext=glueContext, df=red_red_cleaned_draft)
-raise Exception(
-        f"DEBUG: Stopping after red_red_cleaned: cnt {red_red_cleaned.count()}"
-    )
+
+raise Exception(f"DEBUG: Stopping after red_red_cleaned: cnt {red_red_cleaned.count()}")
 
 red_red_text = glueContext.create_dynamic_frame.from_catalog(
     database="kafka",

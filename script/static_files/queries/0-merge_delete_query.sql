@@ -1,18 +1,8 @@
-with rrc_ma as (
-    select *
-    from red_red_cleaned
-    where 
-        cleaned_classified_distributionType in ('RENT', 'BUY')
-        and (
-            classified_geo_countrySpecific_de_iwtLegacyGeoID like '108%'
-            or classified_geo_countrySpecific_de_iwtLegacyGeoID like '103%'
-        )
-),
-
-deleted as (
+with deleted as (
     select 
-        *
-    from rrc_ma
+        changeDate,
+        extra_columns_wo_prefix
+    from red_red_cleaned
     where 
         operation = 'Delete'
         and classified_metaData_classifiedId IS NULL
@@ -23,7 +13,7 @@ deleted as (
 non_deleted as (
     select 
         *
-    from rrc_ma
+    from red_red_cleaned
     where 
         operation != 'Delete'
         and classified_metaData_classifiedId IS NOT NULL
