@@ -236,12 +236,18 @@ else:
 ) = set_date_values(partition_date=partition_date, days_ago=7)
 
 # getting base tables from data catalog
+# NumPartitions = numSlotsPerExecutor * numExecutors
+# (10-1) * 16 = 144
+additional_options = {"hashfield": "partitioncreateddate", "hashpartitions": "144"}
 red_red_cleaned_draft = glueContext.create_dynamic_frame.from_catalog(
     database="kafka",
     table_name="red_red_cleaned",
     transformation_ctx="red_red_cleaned_draft",
 )
 red_red_cleaned = update_delete(glueContext=glueContext, df=red_red_cleaned_draft)
+raise Exception(
+        f"DEBUG: Stopping after red_red_cleaned: cnt {red_red_cleaned.count()}"
+    )
 
 red_red_text = glueContext.create_dynamic_frame.from_catalog(
     database="kafka",
@@ -282,6 +288,8 @@ customeractions_daily_actions_per_classified = glueContext.create_dynamic_frame.
 # end of getting base tables
 
 union_df = None
+
+
 # loop over possible values
 for row in config["countryValues"]:
     geoid = row["geoid"]
@@ -337,6 +345,7 @@ for row in config["countryValues"]:
     BaseData_final_df = BaseData_final_df.drop_fields(
         paths=config["colsToDropBaseData"]
     )
+
     BaseData_final_df = modify_data(
         glueContext=glueContext,
         df=BaseData_final_df,
