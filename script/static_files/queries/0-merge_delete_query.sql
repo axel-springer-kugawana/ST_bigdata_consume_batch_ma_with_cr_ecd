@@ -1,8 +1,11 @@
-with deleted as (
+deleted as (
     select 
+        id,
+        partitionChangeDate,
         changeDate,
-        extra_columns_wo_prefix
-    from red_red_cleaned
+        globalObjectKey,
+        operation
+    from red_red_filtered
     where 
         operation = 'Delete'
         and classified_metaData_classifiedId IS NULL
@@ -11,9 +14,9 @@ with deleted as (
 ),
 
 non_deleted as (
-    select 
-        *
-    from red_red_cleaned
+    select
+        id, partitionChangeDate, changeDate, globalObjectKey, operation, {extra_columns_wo_prefix}
+    from red_red_filtered
     where 
         operation != 'Delete'
         and classified_metaData_classifiedId IS NOT NULL
@@ -39,7 +42,7 @@ final_deleted as (
 
 final_non_deleted as (
     select 
-        *
+        id, partitionChangeDate, changeDate, globalObjectKey, operation, {extra_columns_wo_prefix}
     from non_deleted
     where 
         partitionchangedate>=to_date('{first_day_past}') 

@@ -76,7 +76,6 @@ def sparkSqlQuery(
 def update_delete(glueContext: GlueContext, df: DynamicFrame) -> DynamicFrame:
     """
     Clean red_red deleted records and prepare it
-    "cleaned_classified_distributionType IN ('RENT', 'BUY') AND (classified_geo_countrySpecific_de_iwtLegacyGeoID LIKE '108%' OR classified_geo_countrySpecific_de_iwtLegacyGeoID LIKE '103%')",
     """
     columns = df.toDF().columns
 
@@ -94,18 +93,6 @@ def update_delete(glueContext: GlueContext, df: DynamicFrame) -> DynamicFrame:
         if x.startswith(prefix)
     )
 
-    df_filtered = df.filter(
-        f=lambda x: (
-            x["cleaned_classified_distributiontype"] in ["RENT", "BUY"]
-            and (
-                x["classified_geo_countryspecific_de_iwtlegacygeoid"].startswith("103")
-                or x["classified_geo_countryspecific_de_iwtlegacygeoid"].startswith(
-                    "108"
-                )
-            )
-        )
-    )
-
     ret_df = sparkSqlQuery(
         glueContext,
         query=Queries.get_merge_delete_query(
@@ -114,7 +101,7 @@ def update_delete(glueContext: GlueContext, df: DynamicFrame) -> DynamicFrame:
             first_day_past=first_day_past,
             first_day_next_month=first_day_next_month,
         ),
-        mapping={"red_red_cleaned": df_filtered},
+        mapping={"red_red_filtered": df},
         transformation_ctx="merged_df",
     )
     ret_df = ret_df.drop_fields(paths=["rank"])
@@ -216,7 +203,7 @@ def set_date_values(
 
 
 # load arguments
-args = getResolvedOptions(sys.argv, ["JOB_NAME", "partition_date"])
+args = getResolvedOptions(sys.argv, ["JOB_NAME", "partition_date", "days_ago"])
 sc = SparkContext()
 glueContext = GlueContext(sc)
 
@@ -241,25 +228,33 @@ if args["partition_date"] == "yesterday":
 else:
     partition_date = args["partition_date"].strptime("%Y-%m-%d")
 
+days_ago = int(args["days_ago"])
+
+
 # set date values
 (
     first_day_current_month,
     first_day_next_month,
     first_day_past,
     partition_month,
-) = set_date_values(partition_date=partition_date, days_ago=7)
+) = set_date_values(partition_date=partition_date, days_ago=days_ago)
 
 # getting base tables from data catalog
-# NumPartitions = numSlotsPerExecutor * numExecutors
-# (10-1) * 16 = 144
-red_red_cleaned_draft = glueContext.create_dynamic_frame.from_catalog(
+red_red_cleaned_raw = glueContext.create_dynamic_frame.from_catalog(
     database="kafka",
     table_name="red_red_cleaned",
-    transformation_ctx="red_red_cleaned_draft",
+    transformation_ctx="red_red_cleaned_raw",
 )
-red_red_cleaned = update_delete(glueContext=glueContext, df=red_red_cleaned_draft)
-
-raise Exception(f"DEBUG: Stopping after red_red_cleaned: cnt {red_red_cleaned.count()}")
+red_red_filtered = sparkSqlQuery(
+    glueContext=glueContext,
+    query=Queries.get_red_red_filtered(),
+    mapping={
+        "red_red_cleaned_raw": red_red_cleaned_raw,
+    },
+    transformation_ctx="red_red_filtered_query",
+)
+red_red_filtered = cacheDf(red_red_filtered, glueContext, "red_red_filtered")
+red_red_cleaned = update_delete(glueContext=glueContext, df=red_red_filtered)
 
 red_red_text = glueContext.create_dynamic_frame.from_catalog(
     database="kafka",
@@ -375,6 +370,8 @@ for row in config["countryValues"]:
             transformation_ctx="Union_node",
         )
 
+    BaseDataFirst.toDF().unpersist()
+    BaseData.toDF().unpersist()
     logger.error("DEBUG: Union df done")
 
     csv_df = BaseData_final_df.drop_fields(paths=config["colsToDropJson"])
