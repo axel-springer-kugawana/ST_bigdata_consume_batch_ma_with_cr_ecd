@@ -243,16 +243,6 @@ class Queries(Variables):
         )
 
         return merge_delete_query
-    
-    @staticmethod
-    def get_red_red_filtered(self) -> str:
-        red_red_filtered_query = Helper.read_and_format_sql_query(
-            file_path="0-red_red_filtered.sql",
-            price_amount_column=self.price_amount_column,
-            first_day_current_month=self.first_day_current_month,
-        )
-
-        return red_red_filtered_query
 
     def get_BaseData_first_query(self) -> str:
         BaseData_first_query = Helper.read_and_format_sql_query(

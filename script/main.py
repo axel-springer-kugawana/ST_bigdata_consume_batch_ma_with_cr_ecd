@@ -33,7 +33,7 @@ def cacheDf(
     df: DynamicFrame, glueContext: GlueContext, transformation_ctx: str
 ) -> DynamicFrame:
     """
-    Cache the dataframe to optimize performance
+    Cache the dynamicframe to optimize performance
     """
     cached_df = df.toDF()
     cached_df = cached_df.cache()
@@ -73,6 +73,23 @@ def sparkSqlQuery(
     return DynamicFrame.fromDF(result, glueContext, transformation_ctx)
 
 
+def filter_red_red(df: DynamicFrame) -> DynamicFrame:
+    """
+    Filter red_red dataframe
+    """
+    df = df.toDF()
+    result = df.filter(
+        (F.col("cleaned_classified_distributionType").isin("RENT", "BUY"))
+        & (
+            F.col("classified_geo_countrySpecific_de_iwtLegacyGeoID").startswith("108")
+            | F.col("classified_geo_countrySpecific_de_iwtLegacyGeoID").startswith(
+                "103"
+            )
+        )
+    )
+    return DynamicFrame.fromDF(result, glueContext, "red_red_filtered")
+
+
 def update_delete(glueContext: GlueContext, df: DynamicFrame) -> DynamicFrame:
     """
     Clean red_red deleted records and prepare it
@@ -105,7 +122,7 @@ def update_delete(glueContext: GlueContext, df: DynamicFrame) -> DynamicFrame:
         transformation_ctx="merged_df",
     )
     ret_df = ret_df.drop_fields(paths=["rank"])
-
+    
     return cacheDf(ret_df, glueContext, "cached_update_delete")
 
 
@@ -211,12 +228,6 @@ spark = glueContext.spark_session
 job = Job(glueContext)
 job.init(args["JOB_NAME"], args)
 
-# set logger
-logging.basicConfig(
-    level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
-
 ENV_NAME = parse_env_name()
 
 # load config
@@ -245,15 +256,7 @@ red_red_cleaned_raw = glueContext.create_dynamic_frame.from_catalog(
     table_name="red_red_cleaned",
     transformation_ctx="red_red_cleaned_raw",
 )
-red_red_filtered = sparkSqlQuery(
-    glueContext=glueContext,
-    query=Queries.get_red_red_filtered(),
-    mapping={
-        "red_red_cleaned_raw": red_red_cleaned_raw,
-    },
-    transformation_ctx="red_red_filtered_query",
-)
-red_red_filtered = cacheDf(red_red_filtered, glueContext, "red_red_filtered")
+red_red_filtered = filter_red_red(red_red_cleaned_raw)
 red_red_cleaned = update_delete(glueContext=glueContext, df=red_red_filtered)
 
 red_red_text = glueContext.create_dynamic_frame.from_catalog(
@@ -303,9 +306,6 @@ for row in config["countryValues"]:
     country_name = row["country_name"]
     distribution_type = row["distribution_type"]
     data_source = row["data_source"]
-    logger.error(
-        f"DEBUG: Getting data for: {geoid, country_name, distribution_type, data_source}"
-    )
 
     queries_obj = Queries(
         distribution_type, geoid, first_day_current_month, first_day_next_month
@@ -321,7 +321,6 @@ for row in config["countryValues"]:
         transformation_ctx="BaseData_first",
     )
     BaseDataFirst = cacheDf(BaseDataFirst, glueContext, "basedata_first_cached")
-    logger.error("DEBUG: Done fetching base data first")
 
     BaseData = sparkSqlQuery(
         glueContext=glueContext,
@@ -335,8 +334,6 @@ for row in config["countryValues"]:
         },
         transformation_ctx="BaseData_df",
     )
-    BaseData = cacheDf(BaseData, glueContext, "basedata_cached")
-    logger.error("DEBUG: Done fetching base data cached")
 
     BaseData_final_df = sparkSqlQuery(
         glueContext=glueContext,
@@ -347,7 +344,6 @@ for row in config["countryValues"]:
         },
         transformation_ctx="BaseData_final_df",
     )
-    logger.error("DEBUG: Done fetching base data final")
 
     BaseData_final_df = BaseData_final_df.drop_fields(
         paths=config["colsToDropBaseData"]
@@ -371,8 +367,6 @@ for row in config["countryValues"]:
         )
 
     BaseDataFirst.toDF().unpersist()
-    BaseData.toDF().unpersist()
-    logger.error("DEBUG: Union df done")
 
     csv_df = BaseData_final_df.drop_fields(paths=config["colsToDropJson"])
     json_df = Helper.modify_data_json(
@@ -396,7 +390,6 @@ for row in config["countryValues"]:
         connection_options={"compression": "gzip", "path": s3_path_csv},
         transformation_ctx="AmazonS3_node1714127201181",
     )
-    logger.error("DEBUG: Done with json")
 
 # delete insert instead of replacewhere
 glueContext.purge_table(
@@ -407,7 +400,6 @@ glueContext.purge_table(
         "retentionPeriod": 1,
     },
 )
-logger.error("DEBUG: Done purging table")
 
 AWSGlueDataCatalog_node1709799333156 = glueContext.write_dynamic_frame.from_catalog(
     frame=union_df,
@@ -420,6 +412,5 @@ AWSGlueDataCatalog_node1709799333156 = glueContext.write_dynamic_frame.from_cata
     },
     transformation_ctx="AWSGlueDataCatalog_node1709799333156",
 )
-logger.error("DEBUG: Done writing to table")
 
 job.commit()

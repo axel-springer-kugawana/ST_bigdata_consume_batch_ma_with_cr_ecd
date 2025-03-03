@@ -1,4 +1,4 @@
-deleted as (
+with deleted as (
     select 
         id,
         partitionChangeDate,
