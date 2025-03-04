@@ -100,7 +100,8 @@
         "cleaned_classified_conditions_yearOfConstruction",
         "cleaned_userDefined_immoWelt_research_ageState",
         "cleaned_userDefined_immoWelt_research_buildState",
-        "classified_contact_iwtLegacyAnbieterId"
+        "classified_contact_iwtLegacyAnbieterId",
+        "classified_energy_countrySpecific_de_energyCertificate.efficiencyClass[0] classified_energy_countrySpecific_de_energyCertificate_efficiencyClass"
     ],
     "classifiedCols": [
         "estateType",

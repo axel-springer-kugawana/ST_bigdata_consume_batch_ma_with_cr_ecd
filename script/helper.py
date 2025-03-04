@@ -206,12 +206,6 @@ class Variables:
         ]
         self.attributes_all_string = ", ".join(self.attributes_all)
 
-        # remove original name and keep only alias
-        # e.g. classified_energy_countryspecific_de_energycertificate.heatingconsumption[0] classified_energy_countryspecific_de_energycertificate_heatingconsumption - > classified_energy_countryspecific_de_energycertificate_heatingconsumption
-        self.attributes_all_cleaned = [x.split()[-1] for x in self.attributes_all]
-        self.attributes_all_cleaned_string = ", ".join(self.attributes_all_cleaned)
-
-
 class Queries(Variables):
 
     def __init__(
@@ -247,7 +241,7 @@ class Queries(Variables):
     def get_BaseData_first_query(self) -> str:
         BaseData_first_query = Helper.read_and_format_sql_query(
             file_path="1-basedata_first_query.sql",
-            attributes_all_cleaned_string=self.attributes_all_cleaned_string,
+            attributes_all_string=self.attributes_all_string,
             geoid=self.geoid,
             distribution_type=self.distribution_type,
         )

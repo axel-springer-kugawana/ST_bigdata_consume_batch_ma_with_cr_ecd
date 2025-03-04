@@ -1,6 +1,6 @@
 WITH rrc AS (
     SELECT 
-        {attributes_all_cleaned_string},
+        {attributes_all_string},
         ROW_NUMBER() OVER (PARTITION BY classified_metaData_classifiedId, to_date(classified_metaData_changeDate)
                             ORDER BY classified_metaData_changeDate DESC, partitionChangeDate DESC) AS baseRank
     FROM red_red_cleaned

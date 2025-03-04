@@ -1,6 +1,4 @@
 import json
-import logging
-import re
 import sys
 from datetime import datetime, timedelta
 
@@ -86,6 +84,7 @@ def filter_red_red(df: DynamicFrame) -> DynamicFrame:
                 "103"
             )
         )
+        & (F.col("classified_estateType").isin("HOUSE", "APARTMENT"))
     )
     return DynamicFrame.fromDF(result, glueContext, "red_red_filtered")
 
@@ -122,7 +121,7 @@ def update_delete(glueContext: GlueContext, df: DynamicFrame) -> DynamicFrame:
         transformation_ctx="merged_df",
     )
     ret_df = ret_df.drop_fields(paths=["rank"])
-    
+
     return cacheDf(ret_df, glueContext, "cached_update_delete")
 
 
@@ -195,7 +194,7 @@ def modify_data(
 
 
 def set_date_values(
-    partition_date: datetime.date, days_ago: int
+    partition_date: datetime.date, days_ago: str
 ) -> tuple[str, str, str, str]:
     """
     Set date values for the queries
@@ -206,9 +205,13 @@ def set_date_values(
         .replace(day=1)
         .strftime("%Y-%m-%d")
     )
-    first_day_past = (
-        partition_date.replace(day=1) + relativedelta(days=-days_ago)
-    ).strftime("%Y-%m-%d")
+    if days_ago == "full_refresh":
+        first_day_past = "2024-05-20"  # oldest date available in the data
+    else:
+        first_day_past = (
+            partition_date.replace(day=1) + relativedelta(days=-int(days_ago))
+        ).strftime("%Y-%m-%d")
+
     partition_month = partition_date.strftime("%Y-%m")
 
     return (
@@ -237,18 +240,16 @@ with open("config.json") as f:
 if args["partition_date"] == "yesterday":
     partition_date = (datetime.now() - timedelta(days=1)).date()
 else:
-    partition_date = args["partition_date"].strptime("%Y-%m-%d")
+    partition_date = datetime.strptime(args["partition_date"], "%Y-%m-%d")
 
-days_ago = int(args["days_ago"])
-
-
+full_refresh = True if args.get("days_ago") == "full_refresh" else False
 # set date values
 (
     first_day_current_month,
     first_day_next_month,
     first_day_past,
     partition_month,
-) = set_date_values(partition_date=partition_date, days_ago=days_ago)
+) = set_date_values(partition_date=partition_date, days_ago=args["days_ago"])
 
 # getting base tables from data catalog
 red_red_cleaned_raw = glueContext.create_dynamic_frame.from_catalog(
@@ -373,7 +374,7 @@ for row in config["countryValues"]:
         glueContext=glueContext, df=csv_df, distribution_type=distribution_type
     )
 
-    s3_path_json = f"s3://consume-batch-ma-with-cr-ecd-{ENV_NAME}/data/{country_name.lower()}/{distribution_type.lower()}/json/partitioncreateddate={partition_date}"
+    s3_path_json = f"s3://consume-batch-ma-with-cr-ecd-{ENV_NAME}/data/{country_name.lower()}/{distribution_type.lower()}/json/partitioncreateddate={'full_refresh' if full_refresh else partition_date}"
     AmazonS3_node1714127201181 = glueContext.write_dynamic_frame.from_options(
         frame=json_df,
         connection_type="s3",
@@ -382,7 +383,7 @@ for row in config["countryValues"]:
         transformation_ctx="AmazonS3_node1714127201181",
     )
 
-    s3_path_csv = f"s3://consume-batch-ma-with-cr-ecd-{ENV_NAME}/data/{country_name.lower()}/{distribution_type.lower()}/csv/partitioncreateddate={partition_date}"
+    s3_path_csv = f"s3://consume-batch-ma-with-cr-ecd-{ENV_NAME}/data/{country_name.lower()}/{distribution_type.lower()}/csv/partitioncreateddate={'full_refresh' if full_refresh else partition_date}"
     AmazonS3_node1714127201182 = glueContext.write_dynamic_frame.from_options(
         frame=csv_df.coalesce(1),
         connection_type="s3",
@@ -391,26 +392,27 @@ for row in config["countryValues"]:
         transformation_ctx="AmazonS3_node1714127201181",
     )
 
-# delete insert instead of replacewhere
-glueContext.purge_table(
-    database="kafka",
-    table_name="offers_ma_geo",
-    options={
-        "partitionPredicate": f"(partitionmonth == '{partition_month}')",
-        "retentionPeriod": 1,
-    },
-)
+if not full_refresh:
+    # delete insert instead of replacewhere
+    glueContext.purge_table(
+        database="kafka",
+        table_name="offers_ma_geo",
+        options={
+            "partitionPredicate": f"(partitionmonth == '{partition_month}')",
+            "retentionPeriod": 1,
+        },
+    )
 
-AWSGlueDataCatalog_node1709799333156 = glueContext.write_dynamic_frame.from_catalog(
-    frame=union_df,
-    database="kafka",
-    table_name="offers_ma_geo",
-    additional_options={
-        "enableUpdateCatalog": True,
-        "updateBehavior": "UPDATE_IN_DATABASE",
-        "partitionKeys": ["partitionMonth"],
-    },
-    transformation_ctx="AWSGlueDataCatalog_node1709799333156",
-)
+    AWSGlueDataCatalog_node1709799333156 = glueContext.write_dynamic_frame.from_catalog(
+        frame=union_df,
+        database="kafka",
+        table_name="offers_ma_geo",
+        additional_options={
+            "enableUpdateCatalog": True,
+            "updateBehavior": "UPDATE_IN_DATABASE",
+            "partitionKeys": ["partitionMonth"],
+        },
+        transformation_ctx="AWSGlueDataCatalog_node1709799333156",
+    )
 
 job.commit()
