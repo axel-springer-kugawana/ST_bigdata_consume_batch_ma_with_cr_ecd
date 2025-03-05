@@ -115,7 +115,7 @@ def update_delete(glueContext: GlueContext, df: DynamicFrame) -> DynamicFrame:
             extra_columns_wo_prefix=filtered_columns_str_wo_prefix,
             extra_columns_with_prefix=filtered_columns_str_with_prefix,
             first_day_past=first_day_past,
-            first_day_next_month=first_day_next_month,
+            partition_date=partition_date,
         ),
         mapping={"red_red_filtered": df},
         transformation_ctx="merged_df",
@@ -200,11 +200,6 @@ def set_date_values(
     Set date values for the queries
     """
     first_day_current_month = partition_date.replace(day=1).strftime("%Y-%m-%d")
-    first_day_next_month = (
-        (partition_date.replace(day=1) + relativedelta(months=+1))
-        .replace(day=1)
-        .strftime("%Y-%m-%d")
-    )
     if days_ago == "full_refresh":
         first_day_past = "2024-05-20"  # oldest date available in the data
     else:
@@ -216,7 +211,7 @@ def set_date_values(
 
     return (
         first_day_current_month,
-        first_day_next_month,
+        partition_date.strftime("%Y-%m-%d"),
         first_day_past,
         partition_month,
     )
@@ -246,7 +241,7 @@ full_refresh = True if args.get("days_ago") == "full_refresh" else False
 # set date values
 (
     first_day_current_month,
-    first_day_next_month,
+    partition_date,
     first_day_past,
     partition_month,
 ) = set_date_values(partition_date=partition_date, days_ago=args["days_ago"])
@@ -256,14 +251,16 @@ red_red_cleaned_raw = glueContext.create_dynamic_frame.from_catalog(
     database="kafka",
     table_name="red_red_cleaned",
     transformation_ctx="red_red_cleaned_raw",
+    push_down_predicate=f"(partitioncreateddate<=to_date('{partition_date}'))",
 )
+
 red_red_filtered = filter_red_red(red_red_cleaned_raw)
 red_red_cleaned = update_delete(glueContext=glueContext, df=red_red_filtered)
 
 red_red_text = glueContext.create_dynamic_frame.from_catalog(
     database="kafka",
     table_name="red_red_text",
-    push_down_predicate=f"(partitioncreateddate>=to_date('{first_day_past}') and partitioncreateddate<to_date('{first_day_next_month}'))",
+    push_down_predicate=f"(partitioncreateddate>=to_date('{first_day_past}') and partitioncreateddate<to_date('{partition_date}'))",
     transformation_ctx="red_red_text",
 )
 
@@ -279,21 +276,21 @@ red_vd_cleaned = DynamicFrame.fromDF(
 red_ecd = glueContext.create_dynamic_frame.from_catalog(
     database="kafka",
     table_name="red_ecd_raw",
-    push_down_predicate=f"(partitioncreateddate>=to_date('{first_day_past}') and partitioncreateddate<to_date('{first_day_next_month}'))",
+    push_down_predicate=f"(partitioncreateddate>=to_date('{first_day_past}') and partitioncreateddate<to_date('{partition_date}'))",
     transformation_ctx="red_ecd",
 )
 
 contactrequests_daily_cr_per_classified = glueContext.create_dynamic_frame.from_catalog(
     database="kinesis",
     table_name="contactrequests_daily_cr_per_classified",
-    push_down_predicate=f"(partitioncreateddate>=to_date('{first_day_current_month}') and partitioncreateddate<to_date('{first_day_next_month}'))",
+    push_down_predicate=f"(partitioncreateddate>=to_date('{first_day_current_month}') and partitioncreateddate<to_date('{partition_date}'))",
     transformation_ctx="contactrequests_daily_cr_per_classified",
 )
 
 customeractions_daily_actions_per_classified = glueContext.create_dynamic_frame.from_catalog(
     database="kinesis",
     table_name="customeractions_daily_actions_per_classified",
-    push_down_predicate=f"(partitioncreateddate>=to_date('{first_day_current_month}') and partitioncreateddate<to_date('{first_day_next_month}'))",
+    push_down_predicate=f"(partitioncreateddate>=to_date('{first_day_current_month}') and partitioncreateddate<to_date('{partition_date}'))",
     transformation_ctx="customeractions_daily_actions_per_classified",
 )
 # end of getting base tables
@@ -309,7 +306,7 @@ for row in config["countryValues"]:
     data_source = row["data_source"]
 
     queries_obj = Queries(
-        distribution_type, geoid, first_day_current_month, first_day_next_month
+        distribution_type, geoid, first_day_current_month, partition_date
     )
 
     BaseDataFirst = sparkSqlQuery(

@@ -3,7 +3,7 @@ WITH red_vd_cid as (
     FROM red_vd_cleaned
     WHERE
         aktivbis >= to_date('{first_day_current_month}')
-        AND aktivab < to_date('{first_day_next_month}')
+        AND aktivab < to_date('{partition_date}')
 ),
 
 oc as (

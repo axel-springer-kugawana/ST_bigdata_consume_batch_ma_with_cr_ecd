@@ -133,7 +133,10 @@
         "texts_extendedinformation_de",
         "texts_locationnote_de",
         "texts_regionalnote_de",
-        "texts_transportation_bus_de"
+        "texts_transportation_bus_de",
+        "classified_contact_iwtLegacyAnbieterId",
+        "classified_energy_countrySpecific_de_energyCertificate_efficiencyClass"
+
     ],
     "validPrefixValues": [
         "classified_",

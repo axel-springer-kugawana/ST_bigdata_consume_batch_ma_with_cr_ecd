@@ -10,7 +10,6 @@ with deleted as (
         operation = 'Delete'
         and classified_metaData_classifiedId IS NULL
         and partitionchangedate>=to_date('{first_day_past}') 
-        and partitionchangedate<to_date('{first_day_next_month}')
 ),
 
 non_deleted as (
@@ -46,7 +45,6 @@ final_non_deleted as (
     from non_deleted
     where 
         partitionchangedate>=to_date('{first_day_past}') 
-        and partitionchangedate<to_date('{first_day_next_month}')
 ),
 
 final_union as (

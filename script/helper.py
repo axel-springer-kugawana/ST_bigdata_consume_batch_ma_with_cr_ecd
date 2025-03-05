@@ -206,6 +206,7 @@ class Variables:
         ]
         self.attributes_all_string = ", ".join(self.attributes_all)
 
+
 class Queries(Variables):
 
     def __init__(
@@ -213,27 +214,27 @@ class Queries(Variables):
         distribution_type: str,
         geoid: int,
         first_day_current_month: str,
-        first_day_next_month: str,
+        partition_date: str,
     ) -> None:
         super().__init__(distribution_type)
         self.distribution_type = distribution_type
         self.geoid = geoid
         self.first_day_current_month = first_day_current_month
-        self.first_day_next_month = first_day_next_month
+        self.partition_date = partition_date
 
     @staticmethod
     def get_merge_delete_query(
         extra_columns_wo_prefix,
         extra_columns_with_prefix,
         first_day_past,
-        first_day_next_month,
+        partition_date,
     ) -> str:
         merge_delete_query = Helper.read_and_format_sql_query(
             file_path="0-merge_delete_query.sql",
             extra_columns_wo_prefix=extra_columns_wo_prefix,
             extra_columns_with_prefix=extra_columns_with_prefix,
             first_day_past=first_day_past,
-            first_day_next_month=first_day_next_month,
+            partition_date=partition_date,
         )
 
         return merge_delete_query
@@ -253,7 +254,7 @@ class Queries(Variables):
             file_path="2-basedata_df_query.sql",
             price_amount_column=self.price_amount_column,
             first_day_current_month=self.first_day_current_month,
-            first_day_next_month=self.first_day_next_month,
+            partition_date=self.partition_date,
         )
 
         return BaseData_df_query
