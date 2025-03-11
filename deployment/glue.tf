@@ -160,7 +160,7 @@ resource "aws_glue_job" "glue-job" {
 resource "aws_glue_trigger" "glue_trigger" {
   count    = var.env == "live" ? 1 : 0
   name     = "${var.bucket}-${var.env}-glue-trigger"
-  schedule = "cron(0 1 * * ? *)"
+  schedule = "cron(0 2 * * ? *)"
   type     = "SCHEDULED"
 
   actions {
