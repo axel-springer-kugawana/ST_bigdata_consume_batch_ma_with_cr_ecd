@@ -148,7 +148,6 @@ resource "aws_glue_job" "glue-job" {
     "--enable-metrics"                   = "true"
     "--enable-glue-datacatalog"          = "true"
     "--TempDir"                          = "s3://${var.bucket}-${var.env}/tmp"
-    "--enable-spark-ui"                  = "true",
     "--spark-event-logs-path"            = "s3://${var.bucket}-${var.env}/eventLogs/"
   }
 
@@ -160,7 +159,7 @@ resource "aws_glue_job" "glue-job" {
 resource "aws_glue_trigger" "glue_trigger" {
   count    = var.env == "live" ? 1 : 0
   name     = "${var.bucket}-${var.env}-glue-trigger"
-  schedule = "cron(0 2 * * ? *)"
+  schedule = "cron(5 2 * * ? *)"
   type     = "SCHEDULED"
 
   actions {
