@@ -9,7 +9,7 @@ with deleted as (
     where 
         operation = 'Delete'
         and classified_metaData_classifiedId IS NULL
-        and partitionchangedate>=to_date('{first_day_past}') 
+        and partitionchangedate>=to_date('{first_day_past}')
 ),
 
 non_deleted as (
