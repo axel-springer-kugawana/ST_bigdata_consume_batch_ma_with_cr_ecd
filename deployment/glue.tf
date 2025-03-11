@@ -139,14 +139,16 @@ resource "aws_glue_job" "glue-job" {
     "--extra-py-files"                   = "s3://${var.bucket}-${var.env}/scripts/helper.py"
     "--extra-files"                      = "s3://${var.bucket}-${var.env}/scripts/stadtlandkreise.csv,s3://${var.bucket}-${var.env}/scripts/bundeslaender.csv,s3://${var.bucket}-${var.env}/scripts/config.json,s3://${var.bucket}-${var.env}/scripts/1-basedata_first_query.sql,s3://${var.bucket}-${var.env}/scripts/2-basedata_df_query.sql,s3://${var.bucket}-${var.env}/scripts/3-basedata_df_final_query.sql,s3://${var.bucket}-${var.env}/scripts/0-merge_delete_query.sql,s3://${var.bucket}-${var.env}/scripts/log4j2.properties"
     "--partition_date"                   = "yesterday"
-    "--conf"                             = "spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension --conf spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog --conf spark.sql.broadcastTimeout=36000 --conf spark.sql.autoBroadcastJoinThreshold=4294967296"
-    "--executor-cores"                   = var.env == "live" ? floor(64 * 1.8) : floor(8 * 1.8) # The value should not exceed 2x the number of vCPUs on the worker type, which is 8 on G.1X, 16 on G.2X, 32 on G.4X and 64 on G.8X
+    "--days_ago"                         = "10"
+    "--conf"                             = "spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension --conf spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog --conf spark.sql.broadcastTimeout=36000 --conf spark.driver.memory=8g --conf spark.executor.memory=8g --conf spark.executor.memoryOverhead=3g"
+    "--executor-cores"                   = var.env == "live" ? 32 : 8 
     "--datalake-formats"                 = "delta"
     "--enable-continuous-cloudwatch-log" = "true"
     "--enable-continuous-log-filter"     = "true"
     "--enable-metrics"                   = "true"
     "--enable-glue-datacatalog"          = "true"
     "--TempDir"                          = "s3://${var.bucket}-${var.env}/tmp"
+    "--spark-event-logs-path"            = "s3://${var.bucket}-${var.env}/eventLogs/"
   }
 
   worker_type       = var.env == "live" ? "G.8X" : "G.1X"
@@ -157,7 +159,7 @@ resource "aws_glue_job" "glue-job" {
 resource "aws_glue_trigger" "glue_trigger" {
   count    = var.env == "live" ? 1 : 0
   name     = "${var.bucket}-${var.env}-glue-trigger"
-  schedule = "cron(0 1 * * ? *)"
+  schedule = "cron(5 2 * * ? *)"
   type     = "SCHEDULED"
 
   actions {

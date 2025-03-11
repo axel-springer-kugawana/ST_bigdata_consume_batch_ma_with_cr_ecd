@@ -3,30 +3,15 @@ WITH red_vd_cid as (
     FROM red_vd_cleaned
     WHERE
         aktivbis >= to_date('{first_day_current_month}')
-        AND aktivab < to_date('{first_day_next_month}')
-        AND classifiedId like '%'
+        AND aktivab < to_date('{partition_date}')
 ),
 
 oc as (
     SELECT 
-        *
-    FROM BaseDataFirst
-    WHERE
-        COALESCE(cleaned_classified_structure_building_floorNumber, 0) >= 0
-        AND COALESCE(classified_management_rent_certificateOfEligibilityNeeded, 'NO') != 'YES'
-        AND COALESCE(classified_features_residential_flatSharePossible, 'NO') != 'YES'        
-        AND cleaned_classified_geo_postalcode != ''
-        AND COALESCE(classified_features_furnished, 'NOT_APPLICABLE') = 'NOT_APPLICABLE'
-        AND classified_estateType IN ('HOUSE', 'APARTMENT')
-        AND {price_amount_column} > 1
-        AND cleaned_classified_spaces_residential_livingSpace IS NOT NULL 
-        AND cleaned_classified_spaces_residential_livingSpace BETWEEN 5 AND 500
-        AND {price_amount_column} / cleaned_classified_spaces_residential_livingSpace > 1.
-        AND cleaned_classified_structure_rooms_numberOfRooms <= 20
-        AND classified_management_isForInvestment IS NOT True
-        
-        -- if required: regard only offers that are active (within activity periods)
-        AND classified_metaData_classifiedId IN (SELECT classifiedId FROM red_vd_cid)
+        bdf.*
+    FROM BaseDataFirst bdf
+    INNER JOIN red_vd_cid rvd
+        ON bdf.classified_metaData_classifiedId = rvd.classifiedId
 ),
 
 ecd as (

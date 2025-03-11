@@ -3,7 +3,7 @@ import sys
 from datetime import datetime, timedelta
 
 import boto3
-from awsglue import DataFrame, DynamicFrame
+from awsglue import DynamicFrame
 from awsglue.context import GlueContext
 from awsglue.job import Job
 from awsglue.transforms import *
@@ -11,6 +11,7 @@ from awsglue.utils import getResolvedOptions
 from dateutil.relativedelta import relativedelta
 from helper import Helper, Queries
 from pyspark.context import SparkContext
+from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
 
@@ -30,7 +31,7 @@ def cacheDf(
     df: DynamicFrame, glueContext: GlueContext, transformation_ctx: str
 ) -> DynamicFrame:
     """
-    Cache the dataframe to optimize performance
+    Cache the dynamicframe to optimize performance
     """
     cached_df = df.toDF()
     cached_df = cached_df.cache()
@@ -70,6 +71,24 @@ def sparkSqlQuery(
     return DynamicFrame.fromDF(result, glueContext, transformation_ctx)
 
 
+def filter_red_red(df: DynamicFrame) -> DynamicFrame:
+    """
+    Filter red_red dataframe
+    """
+    df = df.toDF()
+    result = df.filter(
+        (F.col("cleaned_classified_distributionType").isin("RENT", "BUY"))
+        & (
+            F.col("classified_geo_countrySpecific_de_iwtLegacyGeoID").startswith("108")
+            | F.col("classified_geo_countrySpecific_de_iwtLegacyGeoID").startswith(
+                "103"
+            )
+        )
+        & (F.col("classified_estateType").isin("HOUSE", "APARTMENT"))
+    )
+    return DynamicFrame.fromDF(result, glueContext, "red_red_filtered")
+
+
 def update_delete(glueContext: GlueContext, df: DynamicFrame) -> DynamicFrame:
     """
     Clean red_red deleted records and prepare it
@@ -96,9 +115,9 @@ def update_delete(glueContext: GlueContext, df: DynamicFrame) -> DynamicFrame:
             extra_columns_wo_prefix=filtered_columns_str_wo_prefix,
             extra_columns_with_prefix=filtered_columns_str_with_prefix,
             first_day_past=first_day_past,
-            first_day_next_month=first_day_next_month,
+            partition_date=partition_date,
         ),
-        mapping={"red_red_cleaned": df},
+        mapping={"red_red_filtered": df},
         transformation_ctx="merged_df",
     )
     ret_df = ret_df.drop_fields(paths=["rank"])
@@ -106,7 +125,7 @@ def update_delete(glueContext: GlueContext, df: DynamicFrame) -> DynamicFrame:
     return cacheDf(ret_df, glueContext, "cached_update_delete")
 
 
-def join_csv_data(df: DataFrame) -> DataFrame:
+def join_csv_static_data(df: DataFrame) -> DataFrame:
     bundeslaender_df = spark.read.csv(
         "bundeslaender.csv", header=True, inferSchema="true"
     )
@@ -116,14 +135,14 @@ def join_csv_data(df: DataFrame) -> DataFrame:
 
     ret_df = (
         df.join(
-            bundeslaender_df,
+            F.broadcast(bundeslaender_df),
             F.substring(df.classified_geo_countrySpecific_de_iwtLegacyGeoID, 1, 5)
             == bundeslaender_df.geoid,
             how="left",
         )
         .drop("geoid")
         .join(
-            stadtlandkreise_df,
+            F.broadcast(stadtlandkreise_df),
             F.substring(df.classified_geo_countrySpecific_de_iwtLegacyGeoID, 1, 8)
             == stadtlandkreise_df.geoid,
             how="left",
@@ -159,7 +178,7 @@ def modify_data(
         ret_df = ret_df.withColumnRenamed(old_name, new_name)
 
     if geoid == 108:
-        ret_df = join_csv_data(ret_df)
+        ret_df = join_csv_static_data(ret_df)
     else:
         ret_df = ret_df.withColumn("geo_state", F.lit(None))
         ret_df = ret_df.withColumn("geo_userDefined_immoWelt_county", F.lit(None))
@@ -175,34 +194,34 @@ def modify_data(
 
 
 def set_date_values(
-    partition_date: datetime.date, days_ago: int
+    partition_date: datetime.date, days_ago: str
 ) -> tuple[str, str, str, str]:
     """
     Set date values for the queries
     """
     first_day_current_month = partition_date.replace(day=1).strftime("%Y-%m-%d")
-    first_day_next_month = (
-        (partition_date.replace(day=1) + relativedelta(months=+1))
-        .replace(day=1)
-        .strftime("%Y-%m-%d")
-    )
-    first_day_past = (
-        partition_date.replace(day=1) + relativedelta(days=-days_ago)
-    ).strftime("%Y-%m-%d")
+    if days_ago == "full_refresh":
+        first_day_past = "2024-05-20"  # oldest date available in the data
+    else:
+        first_day_past = (
+            partition_date.replace(day=1) + relativedelta(days=-int(days_ago))
+        ).strftime("%Y-%m-%d")
+
     partition_month = partition_date.strftime("%Y-%m")
 
     return (
         first_day_current_month,
-        first_day_next_month,
+        partition_date.strftime("%Y-%m-%d"),
         first_day_past,
         partition_month,
     )
 
 
 # load arguments
-args = getResolvedOptions(sys.argv, ["JOB_NAME", "partition_date"])
+args = getResolvedOptions(sys.argv, ["JOB_NAME", "partition_date", "days_ago"])
 sc = SparkContext()
 glueContext = GlueContext(sc)
+
 spark = glueContext.spark_session
 job = Job(glueContext)
 job.init(args["JOB_NAME"], args)
@@ -214,30 +233,34 @@ with open("config.json") as f:
     config = json.load(f)
 
 if args["partition_date"] == "yesterday":
-    partition_date = datetime.now() - timedelta(days=1)
+    partition_date = (datetime.now() - timedelta(days=1)).date()
 else:
-    partition_date = args["partition_date"].strptime("%Y-%m-%d")
+    partition_date = datetime.strptime(args["partition_date"], "%Y-%m-%d")
 
+full_refresh = True if args.get("days_ago") == "full_refresh" else False
 # set date values
 (
     first_day_current_month,
-    first_day_next_month,
+    partition_date,
     first_day_past,
     partition_month,
-) = set_date_values(partition_date=partition_date, days_ago=7)
+) = set_date_values(partition_date=partition_date, days_ago=args["days_ago"])
 
 # getting base tables from data catalog
-red_red_cleaned_draft = glueContext.create_dynamic_frame.from_catalog(
+red_red_cleaned_raw = glueContext.create_dynamic_frame.from_catalog(
     database="kafka",
     table_name="red_red_cleaned",
-    transformation_ctx="red_red_cleaned_draft",
+    transformation_ctx="red_red_cleaned_raw",
+    push_down_predicate=f"(partitioncreateddate<=to_date('{partition_date}'))",
 )
-red_red_cleaned = update_delete(glueContext=glueContext, df=red_red_cleaned_draft)
+
+red_red_filtered = filter_red_red(red_red_cleaned_raw)
+red_red_cleaned = update_delete(glueContext=glueContext, df=red_red_filtered)
 
 red_red_text = glueContext.create_dynamic_frame.from_catalog(
     database="kafka",
     table_name="red_red_text",
-    push_down_predicate=f"(partitioncreateddate>=to_date('{first_day_past}') and partitioncreateddate<to_date('{first_day_next_month}'))",
+    push_down_predicate=f"(partitioncreateddate>=to_date('{first_day_past}') and partitioncreateddate<=to_date('{partition_date}'))",
     transformation_ctx="red_red_text",
 )
 
@@ -253,36 +276,37 @@ red_vd_cleaned = DynamicFrame.fromDF(
 red_ecd = glueContext.create_dynamic_frame.from_catalog(
     database="kafka",
     table_name="red_ecd_raw",
-    push_down_predicate=f"(partitioncreateddate>=to_date('{first_day_past}') and partitioncreateddate<to_date('{first_day_next_month}'))",
+    push_down_predicate=f"(partitioncreateddate>=to_date('{first_day_past}') and partitioncreateddate<=to_date('{partition_date}'))",
     transformation_ctx="red_ecd",
 )
 
 contactrequests_daily_cr_per_classified = glueContext.create_dynamic_frame.from_catalog(
     database="kinesis",
     table_name="contactrequests_daily_cr_per_classified",
-    push_down_predicate=f"(partitioncreateddate>=to_date('{first_day_current_month}') and partitioncreateddate<to_date('{first_day_next_month}'))",
+    push_down_predicate=f"(partitioncreateddate>=to_date('{first_day_current_month}') and partitioncreateddate=<to_date('{partition_date}'))",
     transformation_ctx="contactrequests_daily_cr_per_classified",
 )
 
 customeractions_daily_actions_per_classified = glueContext.create_dynamic_frame.from_catalog(
     database="kinesis",
     table_name="customeractions_daily_actions_per_classified",
-    push_down_predicate=f"(partitioncreateddate>=to_date('{first_day_current_month}') and partitioncreateddate<to_date('{first_day_next_month}'))",
+    push_down_predicate=f"(partitioncreateddate>=to_date('{first_day_current_month}') and partitioncreateddate<=to_date('{partition_date}'))",
     transformation_ctx="customeractions_daily_actions_per_classified",
 )
 # end of getting base tables
 
 union_df = None
+
+
 # loop over possible values
 for row in config["countryValues"]:
     geoid = row["geoid"]
     country_name = row["country_name"]
     distribution_type = row["distribution_type"]
     data_source = row["data_source"]
-    print(f"Getting data for: {geoid, country_name, distribution_type, data_source}")
 
     queries_obj = Queries(
-        distribution_type, geoid, first_day_current_month, first_day_next_month
+        distribution_type, geoid, first_day_current_month, partition_date
     )
 
     BaseDataFirst = sparkSqlQuery(
@@ -295,7 +319,6 @@ for row in config["countryValues"]:
         transformation_ctx="BaseData_first",
     )
     BaseDataFirst = cacheDf(BaseDataFirst, glueContext, "basedata_first_cached")
-    print("Done fetching base data first")
 
     BaseData = sparkSqlQuery(
         glueContext=glueContext,
@@ -309,8 +332,6 @@ for row in config["countryValues"]:
         },
         transformation_ctx="BaseData_df",
     )
-    BaseData = cacheDf(BaseData, glueContext, "basedata_cached")
-    print("Done fetching base data cached")
 
     BaseData_final_df = sparkSqlQuery(
         glueContext=glueContext,
@@ -321,11 +342,11 @@ for row in config["countryValues"]:
         },
         transformation_ctx="BaseData_final_df",
     )
-    print("Done fetching base data final")
 
     BaseData_final_df = BaseData_final_df.drop_fields(
         paths=config["colsToDropBaseData"]
     )
+
     BaseData_final_df = modify_data(
         glueContext=glueContext,
         df=BaseData_final_df,
@@ -343,14 +364,14 @@ for row in config["countryValues"]:
             transformation_ctx="Union_node",
         )
 
-    print("Union df done")
+    BaseDataFirst.toDF().unpersist()
 
     csv_df = BaseData_final_df.drop_fields(paths=config["colsToDropJson"])
-    json_df = Helper.modify_dataJson(
+    json_df = Helper.modify_data_json(
         glueContext=glueContext, df=csv_df, distribution_type=distribution_type
     )
 
-    s3_path_json = f"s3://consume-batch-ma-with-cr-ecd-{ENV_NAME}/data/{country_name.lower()}/{distribution_type.lower()}/json/partitioncreateddate={partition_date}"
+    s3_path_json = f"s3://consume-batch-ma-with-cr-ecd-{ENV_NAME}/data/{country_name.lower()}/{distribution_type.lower()}/json/partitioncreateddate={'full_refresh' if full_refresh else partition_date}"
     AmazonS3_node1714127201181 = glueContext.write_dynamic_frame.from_options(
         frame=json_df,
         connection_type="s3",
@@ -359,7 +380,7 @@ for row in config["countryValues"]:
         transformation_ctx="AmazonS3_node1714127201181",
     )
 
-    s3_path_csv = f"s3://consume-batch-ma-with-cr-ecd-{ENV_NAME}/data/{country_name.lower()}/{distribution_type.lower()}/csv/partitioncreateddate={partition_date}"
+    s3_path_csv = f"s3://consume-batch-ma-with-cr-ecd-{ENV_NAME}/data/{country_name.lower()}/{distribution_type.lower()}/csv/partitioncreateddate={'full_refresh' if full_refresh else partition_date}"
     AmazonS3_node1714127201182 = glueContext.write_dynamic_frame.from_options(
         frame=csv_df.coalesce(1),
         connection_type="s3",
@@ -367,30 +388,28 @@ for row in config["countryValues"]:
         connection_options={"compression": "gzip", "path": s3_path_csv},
         transformation_ctx="AmazonS3_node1714127201181",
     )
-    print("Done with json")
 
-# delete insert instead of replacewhere
-glueContext.purge_table(
-    database="kafka",
-    table_name="offers_ma_geo",
-    options={
-        "partitionPredicate": f"(partitionmonth == '{partition_month}')",
-        "retentionPeriod": 1,
-    },
-)
-print("Done purging table")
+if not full_refresh:
+    # delete insert instead of replacewhere
+    glueContext.purge_table(
+        database="kafka",
+        table_name="offers_ma_geo",
+        options={
+            "partitionPredicate": f"(partitionmonth == '{partition_month}')",
+            "retentionPeriod": 1,
+        },
+    )
 
-AWSGlueDataCatalog_node1709799333156 = glueContext.write_dynamic_frame.from_catalog(
-    frame=union_df,
-    database="kafka",
-    table_name="offers_ma_geo",
-    additional_options={
-        "enableUpdateCatalog": True,
-        "updateBehavior": "UPDATE_IN_DATABASE",
-        "partitionKeys": ["partitionMonth"],
-    },
-    transformation_ctx="AWSGlueDataCatalog_node1709799333156",
-)
-print("Done writing to table")
+    AWSGlueDataCatalog_node1709799333156 = glueContext.write_dynamic_frame.from_catalog(
+        frame=union_df,
+        database="kafka",
+        table_name="offers_ma_geo",
+        additional_options={
+            "enableUpdateCatalog": True,
+            "updateBehavior": "UPDATE_IN_DATABASE",
+            "partitionKeys": ["partitionMonth"],
+        },
+        transformation_ctx="AWSGlueDataCatalog_node1709799333156",
+    )
 
 job.commit()

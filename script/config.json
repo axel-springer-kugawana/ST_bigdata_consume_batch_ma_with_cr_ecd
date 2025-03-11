@@ -14,10 +14,9 @@
         "partitionMonth",
         "partitionGeoid",
         "partitionChangeDate",
-        "cleanupdataproblems",
-        "fraudLevelId"
+        "cleanupdataproblems"
     ],
-    "coolsToKeep": [
+    "colsToKeep": [
         "userDefined_immoWelt_contact-requests",
         "userDefined_immoWelt_iw-contact-requests",
         "userDefined_immoWelt_in-contact-requests",
@@ -101,7 +100,8 @@
         "cleaned_classified_conditions_yearOfConstruction",
         "cleaned_userDefined_immoWelt_research_ageState",
         "cleaned_userDefined_immoWelt_research_buildState",
-        "classified_contact_iwtLegacyAnbieterId"
+        "classified_contact_iwtLegacyAnbieterId",
+        "classified_energy_countrySpecific_de_energyCertificate.efficiencyClass[0] classified_energy_countrySpecific_de_energyCertificate_efficiencyClass"
     ],
     "classifiedCols": [
         "estateType",
@@ -133,7 +133,10 @@
         "texts_extendedinformation_de",
         "texts_locationnote_de",
         "texts_regionalnote_de",
-        "texts_transportation_bus_de"
+        "texts_transportation_bus_de",
+        "classified_contact_iwtLegacyAnbieterId",
+        "classified_energy_countrySpecific_de_energyCertificate_efficiencyClass"
+
     ],
     "validPrefixValues": [
         "classified_",
