@@ -247,11 +247,14 @@ full_refresh = True if args.get("days_ago") == "full_refresh" else False
 ) = set_date_values(partition_date=partition_date, days_ago=args["days_ago"])
 
 # getting base tables from data catalog
-red_red_cleaned_raw = glueContext.create_dynamic_frame.from_catalog(
-    database="kafka",
-    table_name="red_red_cleaned",
+red_red_cleaned_raw = glueContext.create_dynamic_frame.from_options(
+    connection_type="s3",
+    format="parquet",
+    connection_options={
+        "paths": [f"s3://ingest-stream-red-red-{ENV_NAME}/data/cleaned_new"],
+        "recurse": True,
+    },
     transformation_ctx="red_red_cleaned_raw",
-    push_down_predicate=f"(partitioncreateddate<=to_date('{partition_date}'))",
 )
 
 red_red_filtered = filter_red_red(red_red_cleaned_raw)
@@ -283,7 +286,7 @@ red_ecd = glueContext.create_dynamic_frame.from_catalog(
 contactrequests_daily_cr_per_classified = glueContext.create_dynamic_frame.from_catalog(
     database="kinesis",
     table_name="contactrequests_daily_cr_per_classified",
-    push_down_predicate=f"(partitioncreateddate>=to_date('{first_day_current_month}') and partitioncreateddate=<to_date('{partition_date}'))",
+    push_down_predicate=f"(partitioncreateddate>=to_date('{first_day_current_month}') and partitioncreateddate<=to_date('{partition_date}'))",
     transformation_ctx="contactrequests_daily_cr_per_classified",
 )
 
