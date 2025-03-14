@@ -154,7 +154,7 @@ resource "aws_glue_job" "glue-job" {
                                             --conf spark.sql.shuffle.partitions=1000
                                             --conf spark.sql.adaptive.enabled=true
                                             EOT
-    "--executor-cores"                   = var.env == "live" ? floor(64 * 1.8) : floor(8 * 1.8) # The value should not exceed 2x the number of vCPUs on the worker type, which is 8 on G.1X, 16 on G.2X, 32 on G.4X and 64 on G.8X
+    "--executor-cores"                   = var.env == "live" ? 64 : 8
     "--datalake-formats"                 = "delta"
     "--enable-continuous-cloudwatch-log" = "true"
     "--enable-continuous-log-filter"     = "true"
@@ -164,7 +164,7 @@ resource "aws_glue_job" "glue-job" {
   }
 
   worker_type       = var.env == "live" ? "G.8X" : "G.1X"
-  number_of_workers = var.env == "live" ? 6 : 2
+  number_of_workers = var.env == "live" ? 10 : 2
   max_retries       = 0
 }
 
