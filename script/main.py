@@ -1,4 +1,5 @@
 import sys
+from datetime import datetime, timedelta
 
 import boto3
 from awsglue import DynamicFrame
@@ -144,17 +145,27 @@ def modifyData(glueContext, df, geoid) -> DynamicFrame:
     return DynamicFrame.fromDF(ret_df, glueContext, "attributes")
 
 
-args = getResolvedOptions(sys.argv, ["JOB_NAME"])
+args = getResolvedOptions(sys.argv, ["JOB_NAME", "partition_date"])
 sc = SparkContext()
 glueContext = GlueContext(sc)
 spark = glueContext.spark_session
 job = Job(glueContext)
 job.init(args["JOB_NAME"], args)
 
+
+if args["partition_date"] == "today":
+    partition_date = datetime.now()
+else:
+    partition_date = datetime.strptime(args["partition_date"], "%Y-%m-%d")
+
+GlobalVariables.set_dates(partition_date=partition_date)
+partition_date = partition_date.strftime("%Y-%m-%d")
+
 ########## get base tables from data catalog
 red_red_cleaned_draft = glueContext.create_dynamic_frame.from_catalog(
     database="kafka",
     table_name="red_red_cleaned",
+    push_down_predicate=f"(partitioncreateddate<=to_date({partition_date}))",
     transformation_ctx="red_red_cleaned_draft",
 )
 red_red_cleaned = update_delete(glueContext=glueContext, df=red_red_cleaned_draft)
@@ -162,7 +173,7 @@ red_red_cleaned = update_delete(glueContext=glueContext, df=red_red_cleaned_draf
 red_red_text = glueContext.create_dynamic_frame.from_catalog(
     database="kafka",
     table_name="red_red_text",
-    push_down_predicate=f"(partitioncreateddate>=to_date('{GlobalVariables.first_day_3_months_ago}') and partitioncreateddate<to_date('{GlobalVariables.first_day_next_month}'))",
+    push_down_predicate=f"(partitioncreateddate>=to_date('{GlobalVariables.first_day_3_months_ago}') and partitioncreateddate<=to_date({partition_date})",
     transformation_ctx="red_red_text",
 )
 
@@ -171,6 +182,15 @@ red_vd_cleaned_spark = glueContext.create_data_frame.from_catalog(
     table_name="red_vd_cleaned",
     transformation_ctx="red_vd_cleaned_spark",
 )
+
+red_vd_cleaned_spark = red_vd_cleaned_spark.filter(
+    (F.col("aktivab") <= F.to_timestamp(F.lit(partition_date)))
+    & (
+        (F.col("aktivbis") <= F.to_timestamp(F.lit(partition_date)))
+        | (F.col("aktivbis") >= F.to_timestamp(F.lit("2100-01-01")))
+    )
+)
+
 red_vd_cleaned = DynamicFrame.fromDF(
     red_vd_cleaned_spark, glueContext, "red_vd_cleaned"
 )
@@ -178,21 +198,21 @@ red_vd_cleaned = DynamicFrame.fromDF(
 red_ecd = glueContext.create_dynamic_frame.from_catalog(
     database="kafka",
     table_name="red_ecd_raw",
-    push_down_predicate=f"(partitioncreateddate>=to_date('{GlobalVariables.first_day_3_months_ago}') and partitioncreateddate<to_date('{GlobalVariables.first_day_next_month}'))",
+    push_down_predicate=f"(partitioncreateddate>=to_date('{GlobalVariables.first_day_3_months_ago}') and partitioncreateddate<=to_date({partition_date})",
     transformation_ctx="red_ecd",
 )
 
 contactrequests_daily_cr_per_classified = glueContext.create_dynamic_frame.from_catalog(
     database="kinesis",
     table_name="contactrequests_daily_cr_per_classified",
-    push_down_predicate=f"(partitioncreateddate>=to_date('{GlobalVariables.first_day_current_month}') and partitioncreateddate<to_date('{GlobalVariables.first_day_next_month}'))",
+    push_down_predicate=f"(partitioncreateddate>=to_date('{GlobalVariables.first_day_current_month}') and partitioncreateddate<=to_date({partition_date})",
     transformation_ctx="contactrequests_daily_cr_per_classified",
 )
 
 customeractions_daily_actions_per_classified = glueContext.create_dynamic_frame.from_catalog(
     database="kinesis",
     table_name="customeractions_daily_actions_per_classified",
-    push_down_predicate=f"(partitioncreateddate>=to_date('{GlobalVariables.first_day_current_month}') and partitioncreateddate<to_date('{GlobalVariables.first_day_next_month}'))",
+    push_down_predicate=f"(partitioncreateddate>=to_date('{GlobalVariables.first_day_current_month}') and partitioncreateddate<=to_date({partition_date})",
     transformation_ctx="customeractions_daily_actions_per_classified",
 )
 ##########

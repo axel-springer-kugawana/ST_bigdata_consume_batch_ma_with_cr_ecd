@@ -1,4 +1,5 @@
-from datetime import datetime
+import os
+from datetime import datetime, timedelta
 
 import pyspark.sql.functions as F
 from awsglue import DynamicFrame
@@ -535,23 +536,6 @@ class GlobalVariables:
     DATA_KIND = "LISTINGS"
     DATA_SCHEMA = "AVIVIMMO11"
 
-    # First day of current month
-    first_day_current_month = datetime.now().replace(day=1).strftime("%Y-%m-%d")
-
-    # First day of next month
-    first_day_next_month = (
-        (datetime.now().replace(day=1) + relativedelta(months=+1))
-        .replace(day=1)
-        .strftime("%Y-%m-%d")
-    )
-
-    # First day of 3 months ago
-    first_day_3_months_ago = datetime.now().replace(day=1) + relativedelta(months=-3)
-    first_day_3_months_ago = first_day_3_months_ago.strftime("%Y-%m-%d")
-
-    partition_month = datetime.now().strftime("%Y-%m")
-    today = datetime.now().strftime("%Y-%m-%d")
-
     with open("attributes_all.txt", "r") as f:
         attributes_all = f.read().splitlines()
 
@@ -564,11 +548,30 @@ class GlobalVariables:
         "partitionGeoid",
         "partitionChangeDate",
         "cleanupdataproblems",
-        "fraudLevelId",
     ]
 
     with open("classified_cols.txt", "r") as f:
         cols_remove_classified = f.read().splitlines()
+
+    @classmethod
+    def set_dates(cls, partition_date):
+        # First day of current month
+        cls.first_day_current_month = partition_date.replace(day=1).strftime("%Y-%m-%d")
+
+        # First day of next month
+        cls.first_day_next_month = (
+            (partition_date.replace(day=1) + relativedelta(months=+1))
+            .replace(day=1)
+            .strftime("%Y-%m-%d")
+        )
+
+        # First day of 3 months ago
+        cls.first_day_3_months_ago = partition_date.replace(day=1) + relativedelta(
+            months=-3
+        )
+        cls.first_day_3_months_ago = cls.first_day_3_months_ago.strftime("%Y-%m-%d")
+
+        cls.partition_month = partition_date.strftime("%Y-%m")
 
 
 class Variables:
