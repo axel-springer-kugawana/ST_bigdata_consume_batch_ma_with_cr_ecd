@@ -162,8 +162,8 @@ resource "aws_glue_job" "glue-job" {
     "--TempDir"                          = "s3://${var.bucket}-${var.env}/tmp"
   }
 
-  worker_type       = var.env == "live" ? "G.8X" : "G.1X"
-  number_of_workers = var.env == "live" ? 10 : 2
+  worker_type       = var.env == "live" ? "G.4X" : "G.1X"
+  number_of_workers = var.env == "live" ? 6 : 2
   max_retries       = 0
 }
 

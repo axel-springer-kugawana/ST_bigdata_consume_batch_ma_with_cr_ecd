@@ -314,6 +314,8 @@ for geoid, data_country, distribution_type, data_source in country_values:
 
     print("Union df done")
 
+    BaseDataFirst.toDF().unpersist()
+
     csv_df = BaseData_final_df.drop_fields(paths=GlobalVariables.cols_to_drop_json)
     json_df = Helper.modifyDataJson(
         glueContext=glueContext, df=csv_df, distribution_type=distribution_type
