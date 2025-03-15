@@ -566,10 +566,10 @@ class GlobalVariables:
         )
 
         # First day of 3 months ago
-        cls.first_day_3_months_ago = partition_date.replace(day=1) + relativedelta(
-            months=-3
+        cls.first_day_month_ago = partition_date.replace(day=1) - relativedelta(
+            months=1
         )
-        cls.first_day_3_months_ago = cls.first_day_3_months_ago.strftime("%Y-%m-%d")
+        cls.first_day_month_ago = cls.first_day_month_ago.strftime("%Y-%m-%d")
 
         cls.partition_month = partition_date.strftime("%Y-%m")
 
@@ -616,7 +616,7 @@ class Queries(Variables):
             file_path="merge_delete_query.sql",
             extra_columns_wo_prefix=extra_columns_wo_prefix,
             extra_columns_with_prefix=extra_columns_with_prefix,
-            first_day_3_months_ago=GlobalVariables.first_day_3_months_ago,
+            first_day_month_ago=GlobalVariables.first_day_month_ago,
             first_day_next_month=GlobalVariables.first_day_next_month,
         )
 

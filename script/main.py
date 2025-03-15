@@ -51,6 +51,25 @@ def sparkSqlQuery(
     return DynamicFrame.fromDF(result, glueContext, transformation_ctx)
 
 
+def filter_red_red(df: DynamicFrame, partition_date: str) -> DynamicFrame:
+    """
+    Filter red_red dataframe
+    """
+    df = df.toDF()
+    result = df.filter(
+        (F.col("cleaned_classified_distributionType").isin("RENT", "BUY"))
+        & (
+            F.col("classified_geo_countrySpecific_de_iwtLegacyGeoID").startswith("108")
+            | F.col("classified_geo_countrySpecific_de_iwtLegacyGeoID").startswith(
+                "103"
+            )
+        )
+        & (F.col("classified_estateType").isin("HOUSE", "APARTMENT"))
+        & (F.col("partitionchangedate") <= F.to_date(F.lit(partition_date)))
+    )
+    return DynamicFrame.fromDF(result, glueContext, "red_red_filtered")
+
+
 def update_delete(glueContext, df) -> DynamicFrame:
     columns = df.toDF().columns
     prefixes = ["classified_", "cleaned_", "cleanup", "extracted_", "grenzwert_"]
@@ -153,8 +172,8 @@ job = Job(glueContext)
 job.init(args["JOB_NAME"], args)
 
 
-if args["partition_date"] == "today":
-    partition_date = datetime.now()
+if args["partition_date"] == "yesterday":
+    partition_date = (datetime.now() - timedelta(days=1)).date()
 else:
     partition_date = datetime.strptime(args["partition_date"], "%Y-%m-%d")
 
@@ -162,28 +181,32 @@ GlobalVariables.set_dates(partition_date=partition_date)
 partition_date = partition_date.strftime("%Y-%m-%d")
 
 ########## get base tables from data catalog
-red_red_cleaned_draft = glueContext.create_dynamic_frame.from_catalog(
-    database="kafka",
-    table_name="red_red_cleaned",
-    push_down_predicate=f"(partitioncreateddate<=to_date('{partition_date}'))",
-    transformation_ctx="red_red_cleaned_draft",
+red_red_cleaned_raw = glueContext.create_dynamic_frame.from_options(
+    connection_type="s3",
+    format="parquet",
+    connection_options={
+        "paths": [f"s3://ingest-stream-red-red-{ENV_NAME}/data/cleaned_new"],
+        "recurse": True,
+    },
+    transformation_ctx="red_red_cleaned_raw",
 )
-red_red_cleaned = update_delete(glueContext=glueContext, df=red_red_cleaned_draft)
+
+red_red_filtered = filter_red_red(red_red_cleaned_raw, partition_date)
+red_red_cleaned = update_delete(glueContext=glueContext, df=red_red_filtered)
 
 red_red_text = glueContext.create_dynamic_frame.from_catalog(
     database="kafka",
     table_name="red_red_text",
-    push_down_predicate=f"(partitioncreateddate>=to_date('{GlobalVariables.first_day_3_months_ago}') and partitioncreateddate<=to_date('{partition_date}')",
+    push_down_predicate=f"(partitioncreateddate >= '{GlobalVariables.first_day_month_ago}' and partitioncreateddate <= '{partition_date}')",
     transformation_ctx="red_red_text",
 )
 
-red_vd_cleaned_spark = glueContext.create_data_frame.from_catalog(
+red_vd_cleaned_spark_raw = glueContext.create_data_frame.from_catalog(
     database="kafka",
     table_name="red_vd_cleaned",
     transformation_ctx="red_vd_cleaned_spark",
 )
-
-red_vd_cleaned_spark = red_vd_cleaned_spark.filter(
+red_vd_cleaned_spark = red_vd_cleaned_spark_raw.filter(
     (F.col("aktivab") <= F.to_timestamp(F.lit(partition_date)))
     & (
         (F.col("aktivbis") <= F.to_timestamp(F.lit(partition_date)))
@@ -198,21 +221,21 @@ red_vd_cleaned = DynamicFrame.fromDF(
 red_ecd = glueContext.create_dynamic_frame.from_catalog(
     database="kafka",
     table_name="red_ecd_raw",
-    push_down_predicate=f"(partitioncreateddate>=to_date('{GlobalVariables.first_day_3_months_ago}') and partitioncreateddate<=to_date('{partition_date}')",
+    push_down_predicate=f"(partitioncreateddate >= '{GlobalVariables.first_day_month_ago}' and partitioncreateddate <= '{partition_date}')",
     transformation_ctx="red_ecd",
 )
 
 contactrequests_daily_cr_per_classified = glueContext.create_dynamic_frame.from_catalog(
     database="kinesis",
     table_name="contactrequests_daily_cr_per_classified",
-    push_down_predicate=f"(partitioncreateddate>=to_date('{GlobalVariables.first_day_current_month}') and partitioncreateddate<=to_date('{partition_date}')",
+    push_down_predicate=f"(partitioncreateddate >= '{GlobalVariables.first_day_current_month}' and partitioncreateddate <= '{partition_date}')",
     transformation_ctx="contactrequests_daily_cr_per_classified",
 )
 
 customeractions_daily_actions_per_classified = glueContext.create_dynamic_frame.from_catalog(
     database="kinesis",
     table_name="customeractions_daily_actions_per_classified",
-    push_down_predicate=f"(partitioncreateddate>=to_date('{GlobalVariables.first_day_current_month}') and partitioncreateddate<=to_date('{partition_date}')",
+    push_down_predicate=f"(partitioncreateddate >= '{GlobalVariables.first_day_current_month}' and partitioncreateddate <= '{partition_date}')",
     transformation_ctx="customeractions_daily_actions_per_classified",
 )
 ##########
@@ -296,7 +319,7 @@ for geoid, data_country, distribution_type, data_source in country_values:
         glueContext=glueContext, df=csv_df, distribution_type=distribution_type
     )
 
-    s3_path_json = f"s3://consume-batch-ma-with-cr-ecd-{ENV_NAME}/data/{data_country.lower()}/{distribution_type.lower()}/json/partitioncreateddate={GlobalVariables.today}"
+    s3_path_json = f"s3://consume-batch-ma-with-cr-ecd-{ENV_NAME}/data/{data_country.lower()}/{distribution_type.lower()}/json/partitioncreateddate={partition_date}"
     AmazonS3_node1714127201181 = glueContext.write_dynamic_frame.from_options(
         frame=json_df,
         connection_type="s3",
@@ -305,7 +328,7 @@ for geoid, data_country, distribution_type, data_source in country_values:
         transformation_ctx="AmazonS3_node1714127201181",
     )
 
-    s3_path_csv = f"s3://consume-batch-ma-with-cr-ecd-{ENV_NAME}/data/{data_country.lower()}/{distribution_type.lower()}/csv/partitioncreateddate={GlobalVariables.today}"
+    s3_path_csv = f"s3://consume-batch-ma-with-cr-ecd-{ENV_NAME}/data/{data_country.lower()}/{distribution_type.lower()}/csv/partitioncreateddate={partition_date}"
     AmazonS3_node1714127201182 = glueContext.write_dynamic_frame.from_options(
         frame=csv_df.coalesce(1),
         connection_type="s3",

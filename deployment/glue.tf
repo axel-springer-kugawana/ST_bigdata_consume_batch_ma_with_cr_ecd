@@ -142,7 +142,7 @@ resource "aws_glue_job" "glue-job" {
   }
 
   default_arguments = {
-    "--partition_date"                   = "today"
+    "--partition_date"                   = "yesterday"
     "--extra-py-files"                   = "s3://${var.bucket}-${var.env}/scripts/helper.py"
     "--extra-files"                      = "s3://${var.bucket}-${var.env}/scripts/stadtlandkreise.csv,s3://${var.bucket}-${var.env}/scripts/bundeslaender.csv,s3://${var.bucket}-${var.env}/scripts/attributes_all.txt,s3://${var.bucket}-${var.env}/scripts/classified_cols.txt,s3://${var.bucket}-${var.env}/scripts/basedata_first_query.sql,s3://${var.bucket}-${var.env}/scripts/basedata_df_query.sql,s3://${var.bucket}-${var.env}/scripts/basedata_df_final_query.sql,s3://${var.bucket}-${var.env}/scripts/merge_delete_query.sql,s3://${var.bucket}-${var.env}/scripts/log4j2.properties"
     "--conf"                             = <<-EOT
@@ -154,7 +154,6 @@ resource "aws_glue_job" "glue-job" {
                                             --conf spark.sql.shuffle.partitions=1000
                                             --conf spark.sql.adaptive.enabled=true
                                             EOT
-    "--executor-cores"                   = var.env == "live" ? 64 : 8
     "--datalake-formats"                 = "delta"
     "--enable-continuous-cloudwatch-log" = "true"
     "--enable-continuous-log-filter"     = "true"
