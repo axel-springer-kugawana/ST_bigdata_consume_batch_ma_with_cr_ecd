@@ -11,13 +11,15 @@ glue_client = session.client("glue", region_name="eu-central-1")
 GLUE_JOB_NAME = "consume-batch-ma-with-cr-ecd-live"
 
 # Start and end date
-start_date = datetime(2025, 2, 28)  # Start date
+start_date = datetime(2025, 3, 6)  # Start date
 end_date = datetime.today()  # Today's date
 
 # Iterate day by day
 partition_date = start_date
 
 while partition_date <= end_date:
+    time.sleep(90)  # Wait 90 seconds before another loop
+    
     partition_date_str = partition_date.strftime("%Y-%m-%d")
     print(f"Starting job with partition_date: {partition_date_str}")
 
